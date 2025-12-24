@@ -34,7 +34,8 @@
     nav {
       display: flex;
       justify-content: center;
-      gap: 20px;
+      flex-wrap: wrap;
+      gap: 15px;
       margin-top: 10px;
     }
     nav a {
@@ -105,20 +106,70 @@
       font-size: 14px;
       border-top: 2px solid #b30000;
     }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      header h1 {
+        font-size: 32px;
+      }
+      .hero {
+        padding: 100px 20px;
+      }
+      .hero h2 {
+        font-size: 28px;
+      }
+      nav {
+        flex-direction: column;
+        gap: 10px;
+      }
+      section {
+        padding: 40px 15px;
+      }
+      .hero::before {
+        width: 300px;
+        height: 300px;
+      }
+      /* Flex sections in blog and content */
+      section#content div,
+      section#blog div {
+        flex-direction: column;
+        align-items: center;
+      }
+      section#blog div img {
+        width: 100%;
+        max-width: 250px;
+        height: auto;
+      }
+      section#blog div p {
+        text-align: center;
+      }
+    }
+
+    @media (max-width: 480px) {
+      header h1 {
+        font-size: 24px;
+      }
+      .hero h2 {
+        font-size: 22px;
+      }
+      .button {
+        padding: 10px 20px;
+        font-size: 14px;
+      }
+    }
   </style>
 </head>
 <body>
 
 <header>
-  
   <h1>Broken Chains Motorcycle Club</h1>
   <nav> 
     <a href="#home">Home</a> 
     <a href="#content">Content</a>
-     <a href="#join">Join Us</a> 
-     <a href="#history">History</a> 
-     <a href="#blog">Blog</a> 
-    </nav>
+    <a href="#join">Join Us</a> 
+    <a href="#history">History</a> 
+    <a href="#blog">Blog</a> 
+  </nav>
 </header>
 
 <section id="home" class="hero">
@@ -129,7 +180,6 @@
 
 <section id="content">
   <h2>Content</h2>
-  <p>
   <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; max-width: 100%;">
     <img src="images/i1.jpg" alt="Image 1" style="height: 150px; width: auto; border: 2px solid #000; border-radius: 8px;">
     <img src="images/i2.webp" alt="Image 2" style="height: 150px; width: auto; border: 2px solid #000; border-radius: 8px;">
@@ -152,35 +202,31 @@
     <img src="images/i19.jpg" alt="Image 19" style="height: 150px; width: auto; border: 2px solid #000; border-radius: 8px;">
   </div>
 </section>
-</p>
+
 <section id="join">
   <h2>Join Us</h2>
-  <p>
-    Do you think you have what it takes to be apart of Broken Chains mc? Apply below to start your journey!
-  </p>
+  <p>Do you think you have what it takes to be apart of Broken Chains mc? Apply below to start your journey!</p>
   <p><strong>Requirements:</strong></p>
   <ul>
     <li>Respect</li>
     <li>Loyalty</li>
     <li>Brotherhood</li>
   </ul>
-<div style="text-align: center; margin-top: 20px;">
-  <a href="https://discord.com/channels/1428989030548377602/1428989031328518155" target="_blank"
-     style="padding: 12px 40px; font-size: 16px; color: #000; background-color: #ffffff; border: 2px solid #fff; border-radius: 8px; text-decoration: none; margin-right: 10px; display: inline-block; transition: background-color 0.3s, border-color 0.3s, color 0.3s;"
-     onmouseover="this.style.backgroundColor='#ff0000'; this.style.borderColor='#ff0000'; this.style.color='#fff';"
-     onmouseout="this.style.backgroundColor='#ffffff'; this.style.borderColor='#fff'; this.style.color='#000';">
-    Discord
-  </a>
+  <div style="text-align: center; margin-top: 20px;">
+    <a href="https://discord.com/channels/1428989030548377602/1428989031328518155" target="_blank"
+       style="padding: 12px 40px; font-size: 16px; color: #000; background-color: #ffffff; border: 2px solid #fff; border-radius: 8px; text-decoration: none; margin-right: 10px; display: inline-block; transition: background-color 0.3s, border-color 0.3s, color 0.3s;"
+       onmouseover="this.style.backgroundColor='#ff0000'; this.style.borderColor='#ff0000'; this.style.color='#fff';"
+       onmouseout="this.style.backgroundColor='#ffffff'; this.style.borderColor='#fff'; this.style.color='#000';">
+      Discord
+    </a>
 
-  <a href="https://www.instagram.com/46broken_chains_mc?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" target="_blank"
-     style="padding: 12px 40px; font-size: 16px; color: #000; background-color: #ffffff; border: 2px solid #fff; border-radius: 8px; text-decoration: none; display: inline-block; transition: background-color 0.3s, border-color 0.3s, color 0.3s;"
-     onmouseover="this.style.backgroundColor='#ff0000'; this.style.borderColor='#ff0000'; this.style.color='#fff';"
-     onmouseout="this.style.backgroundColor='#ffffff'; this.style.borderColor='#fff'; this.style.color='#000';">
-    Instagram
-  </a>
-</div>
-</p>
-
+    <a href="https://www.instagram.com/46broken_chains_mc?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" target="_blank"
+       style="padding: 12px 40px; font-size: 16px; color: #000; background-color: #ffffff; border: 2px solid #fff; border-radius: 8px; text-decoration: none; display: inline-block; transition: background-color 0.3s, border-color 0.3s, color 0.3s;"
+       onmouseover="this.style.backgroundColor='#ff0000'; this.style.borderColor='#ff0000'; this.style.color='#fff';"
+       onmouseout="this.style.backgroundColor='#ffffff'; this.style.borderColor='#fff'; this.style.color='#000';">
+      Instagram
+    </a>
+  </div>
 </section>
 
 <section id="history">
@@ -195,69 +241,43 @@ He then chose Rose as Secretary. She consistently demonstrated responsibility, h
 <section id="blog">
   <h2>Blog</h2>
   <article>
-    <p>
-      <em>
-        <h3>
-  <a href="disciple.html"
-     style="color:white; text-decoration:underline;"
-     onmouseover="this.style.color='red';"
-     onmouseout="this.style.color='white';">
-    Disciple
-  </a> (President)
-</h3>
-        <div style="display: flex; align-items: flex-start; gap: 20px;">
-          <img src="images/disciple.jpg" alt="Image description" style="width: 200px; height: auto;">
-          <p>
-             Broken Chains MC stands apart through fair, unbiased judgment of its members, a strong code of conduct and morals often overlooked elsewhere, and a commitment to prioritizing genuine people over sheer numbers. One of the fondest memories within the club is witnessing its growth, moments and bonds that will always be cherished. Among all the activities, shooting the SAA stands out as a favorite, a ritual that blends skill with tradition. To be “forever linked” means more than words. It is a union where each member is a link, the chain is the bond, and that connection holds fast for life. - Disciple
-          </p>
-        </div>
-<h3>
-  <a href="obey.html"
-     style="color:white; text-decoration:underline;"
-     onmouseover="this.style.color='red';"
-     onmouseout="this.style.color='white';">
-    Obey
-  </a> (Vice President)
-</h3>
-      <div style="display: flex; align-items: flex-start; gap: 20px;">
-  <img src="images/obey.jpg" alt="Image description" style="width: 200px; height: auto;">
-  <p>
-    Broken Chains MC is defined by strong bonds, shared activities, and an environment where members can speak freely without words being taken the wrong way. Some of the best memories come from getting better together, especially through shooting and TDM-style experiences that sharpen both skill and trust. Kicking it with other crews stands out as a favorite activity, building respect and connection beyond the club itself. To be forever linked means no broken bonds. It means standing together through everything, knowing we are in this as one. - Obey
-  </p>
-</div>
-<h3>
-  <a href="criptic.html"
-     style="color:white; text-decoration:underline;"
-     onmouseover="this.style.color='red';"
-     onmouseout="this.style.color='white';">
-    Criptic
-  </a> (Sergeant-at-Arms)
-</h3>
-      <div style="display: flex; align-items: flex-start; gap: 20px;">
-  <img src="images/criptic.jpg" alt="Image description" style="width: 200px; height: auto;">
-  <p>
-    Broken Chains MC is built on competition, loyalty that’s always one call away, and staying true to the 1%. Some of the best memories come from getting on the piss, sharing drinks and laughs with the brothers and strengthening that bond beyond the game. TDMs with everyone stand out as a favorite activity, especially watching our people improve, which brings the most genuine pride. To be forever linked is something only real and honest people truly understand. We are one strong, abrupt chain, tested and severed more than once, but never broken. 🤜🏼🤛🏼 - Criptic
-  </p>
-</div>
-<h3>
-  <a href="rose.html"
-     style="color:white; text-decoration:underline;"
-     onmouseover="this.style.color='red';"
-     onmouseout="this.style.color='white';">
-    Rose
-  </a> (Secretary)
-</h3>
-      <div style="display: flex; align-items: flex-start; gap: 20px;">
-  <img src="images/rose.jpg" alt="Image description" style="width: 200px; height: auto;">
-  <p>
-    Broken Chains MC is truly special, founded from my daughter’s pocket money and built into a family where all members, regardless of ethnicity, are treated as brothers and sisters. Our members are as loyal and trustworthy as four legs on a stable, and 46MC takes pride in always showing up when you’re needed. Some of my fondest memories include watching Obey and Criptic defend our patch with unmatched skill and witnessing Disciple lead the MC while creating incredible content alongside Hera. My favorite activity has been TDMs, where I’ve honed my aim and pushed myself to improve. To me, being “forever linked” means that this MC has acted as a lifeline, forging connections that remind me daily that people genuinely care. - Rose
-  </p>
-</div>
-
-    </em></p>
-    <p>
-      
-    </p>
+    <div>
+      <h3>
+        <a href="disciple.html"
+           style="color:white; text-decoration:underline;"
+           onmouseover="this.style.color='red';"
+           onmouseout="this.style.color='white';">
+          Disciple
+        </a> (President)
+      </h3>
+      <div style="display: flex; align-items: flex-start; gap: 20px; flex-wrap: wrap;">
+        <img src="images/disciple.jpg" alt="Image description" style="width: 200px; height: auto;">
+        <p>
+          Broken Chains MC stands apart through fair, unbiased judgment of its members, a strong code of conduct and morals often overlooked elsewhere, and a commitment to prioritizing genuine people over sheer numbers. One of the fondest memories within the club is witnessing its growth, moments and bonds that will always be cherished. Among all the activities, shooting the SAA stands out as a favorite, a ritual that blends skill with tradition. To be “forever linked” means more than words. It is a union where each member is a link, the chain is the bond, and that connection holds fast for life. - Disciple
+        </p>
+      </div>
+    </div>
+    <div style="display: flex; align-items: flex-start; gap: 20px; flex-wrap: wrap;">
+        <img src="images/obey.jpg" alt="Image description" style="width: 200px; height: auto;">
+        <p>
+          Broken Chains MC is defined by strong bonds, shared activities, and an environment where members can speak freely without words being taken the wrong way. Some of the best memories come from getting better together, especially through shooting and TDM-style experiences that sharpen both skill and trust. Kicking it with other crews stands out as a favorite activity, building respect and connection beyond the club itself. To be forever linked means no broken bonds. It means standing together through everything, knowing we are in this as one. - Obey
+        </p>
+      </div>
+    </div>
+   <div style="display: flex; align-items: flex-start; gap: 20px; flex-wrap: wrap;">
+        <img src="images/criptic.jpg" alt="Image description" style="width: 200px; height: auto;">
+        <p>
+          Broken Chains MC is built on competition, loyalty that’s always one call away, and staying true to the 1%. Some of the best memories come from getting on the piss, sharing drinks and laughs with the brothers and strengthening that bond beyond the game. TDMs with everyone stand out as a favorite activity, especially watching our people improve, which brings the most genuine pride. To be forever linked is something only real and honest people truly understand. We are one strong, abrupt chain, tested and severed more than once, but never broken. 🤜🏼🤛🏼 - Criptic
+        </p>
+      </div>
+    </div>
+     <div style="display: flex; align-items: flex-start; gap: 20px; flex-wrap: wrap;">
+        <img src="images/rose.jpg" alt="Image description" style="width: 200px; height: auto;">
+        <p>
+          Broken Chains MC is truly special, founded from my daughter’s pocket money and built into a family where all members, regardless of ethnicity, are treated as brothers and sisters. Our members are as loyal and trustworthy as four legs on a stable, and 46MC takes pride in always showing up when you’re needed. Some of my fondest memories include watching Obey and Criptic defend our patch with unmatched skill and witnessing Disciple lead the MC while creating incredible content alongside Hera. My favorite activity has been TDMs, where I’ve honed my aim and pushed myself to improve. To me, being “forever linked” means that this MC has acted as a lifeline, forging connections that remind me daily that people genuinely care. - Rose
+        </p>
+      </div>
+    </div>
   </article>
 </section>
 
