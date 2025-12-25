@@ -206,16 +206,36 @@ video {
 
 <div id="feed"></div>
 
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
 <script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCgaFQ7EZiKB1LQYbtxwWJ8FkwfRd5iI60",
+  authDomain: "brokenchainsmc-f14e5.firebaseapp.com",
+  projectId: "brokenchainsmc-f14e5",
+  storageBucket: "brokenchainsmc-f14e5.firebasestorage.app",
+  messagingSenderId: "30166542756",
+  appId: "1:30166542756:web:9797ba4dab1e7689c5f931"
+};
+
+firebase.initializeApp(firebaseConfig);
+firebase.auth().signInAnonymously();
+const db = firebase.firestore();
+
 const videos = [
-  { id:1, video_url:"videos/v1.mp4", docId:"v1", likes:0, comments:[] },
-  { id:2, video_url:"videos/v2.mp4", docId:"v2", likes:0, comments:[] },
-  { id:3, video_url:"videos/v3.mp4", docId:"v3", likes:0, comments:[] },
-  { id:4, video_url:"videos/v4.mp4", docId:"v4", likes:0, comments:[] },
-  { id:5, video_url:"videos/v5.mp4", docId:"v5", likes:0, comments:[] },
-  { id:6, video_url:"videos/v6.mp4", docId:"v6", likes:0, comments:[] },
-  { id:7, video_url:"videos/v7.mp4", docId:"v7", likes:0, comments:[] },
+  { id:0, video_url:"videos/v0.mp4", docId:"v1", likes: 0, comments: [] },
+  { id:1, video_url:"videos/v1.mp4", docId:"v2", likes: 0, comments: [] },
+  { id:2, video_url:"videos/v2.mp4", docId:"v3", likes: 0, comments: [] },
+  { id:3, video_url:"videos/v3.mp4", docId:"v4", likes: 0, comments: [] },
+  { id:4, video_url:"videos/v4.mp4", docId:"v5", likes: 0, comments: [] },
+  { id:5, video_url:"videos/v5.mp4", docId:"v6", likes: 0, comments: [] },
+  { id:6, video_url:"videos/v6.mp4", docId:"v7", likes: 0, comments: [] }
 ];
+
+// -------------------- Core Functions --------------------
 
 function togglePanel(id,type){
   const bio = document.getElementById(`bio-${id}`);
@@ -229,74 +249,81 @@ function togglePanel(id,type){
   }
 }
 
-// ✅ Like function fixed to prevent negative values
-function likeVideo(id){
-  const video = videos.find(v=>v.id===id);
-  if(!video) return;
-  const likedKey = `liked-${id}`;
-  
-  video.likes = parseInt(video.likes) || 0;
-
-  if(localStorage.getItem(likedKey)){
-    video.likes = Math.max(0, video.likes - 1);
-    localStorage.removeItem(likedKey);
-  } else {
-    video.likes++;
-    localStorage.setItem(likedKey,'true');
-  }
-
-  localStorage.setItem(`likes-${id}`, video.likes);
-
-  // Update UI
-  const likeBtn = document.querySelector(`.side-buttons[data-video="${id}"] button:first-child span`);
-  if(likeBtn) likeBtn.textContent = video.likes;
-
-  // Firestore update
-  db.collection('videos').doc(video.docId).update({ likes: video.likes });
-}
-
-function postComment(id){
-  const input = document.getElementById(`comment-input-${id}`);
-  if(!input.value) return;
-  const video = videos.find(v=>v.id===id);
-  video.comments.push({text: input.value, user:"Anonymous"});
-  input.value = "";
-  renderOverlay(id);
-  updateCommentCount(id);
-
-  // Firestore update
-  db.collection('videos').doc(video.docId).update({ comments: video.comments });
-}
-
-function updateCommentCount(id){
-  const btn = document.querySelector(`.side-buttons[data-video="${id}"] button:nth-child(2) span`);
-  const video = videos.find(v=>v.id===id);
-  btn.textContent = video.comments.length;
-}
-
-function deleteComment(videoId,index){
-  const video = videos.find(v=>v.id===videoId);
-  if(!video) return;
-  video.comments.splice(index,1);
-  renderOverlay(videoId);
-  updateCommentCount(videoId);
-
-  // Firestore update
-  db.collection('videos').doc(video.docId).update({ comments: video.comments });
-}
-
 function togglePlay(video){
   if(video.paused) video.play();
   else video.pause();
 }
 
-function renderOverlay(videoId){
+// -------------------- Firestore Functions --------------------
+
+async function fetchVideoData(video) {
+  const docRef = db.collection("videos").doc(video.docId);
+  const docSnap = await docRef.get();
+  if(docSnap.exists){
+    return docSnap.data();
+  } else {
+    // Initialize doc if it doesn't exist
+    await docRef.set({ likes: 0, comments: [] });
+    return { likes:0, comments:[] };
+  }
+}
+
+async function updateLikes(video) {
+  const docRef = db.collection("videos").doc(video.docId);
+  const data = await fetchVideoData(video);
+  await docRef.update({ likes: data.likes });
+  return data.likes;
+}
+
+async function likeVideo(id){
+  const video = videos.find(v=>v.id===id);
+  if(!video) return;
+
+  const docRef = db.collection("videos").doc(video.docId);
+  const docSnap = await docRef.get();
+  let data = docSnap.data() || {likes:0, comments:[]};
+
+  const likedKey = `liked-${video.id}`;
+  if(localStorage.getItem(likedKey)){
+    data.likes--;
+    localStorage.removeItem(likedKey);
+  } else {
+    data.likes++;
+    localStorage.setItem(likedKey,'true');
+  }
+
+  await docRef.update({ likes: data.likes });
+
+  // Update UI
+  const likeBtn = document.querySelector(`.side-buttons[data-video="${id}"] button:first-child span`);
+  if(likeBtn) likeBtn.textContent = data.likes;
+}
+
+async function postComment(id){
+  const input = document.getElementById(`comment-input-${id}`);
+  if(!input.value) return;
+  const video = videos.find(v=>v.id===id);
+  const docRef = db.collection("videos").doc(video.docId);
+
+  const docSnap = await docRef.get();
+  let data = docSnap.data() || {likes:0, comments:[]};
+  data.comments.push({text: input.value, user:"Anonymous"});
+
+  await docRef.update({ comments: data.comments });
+  input.value = "";
+  renderOverlay(id);
+}
+
+async function renderOverlay(videoId){
   const overlay = document.getElementById(`overlay-${videoId}`);
   const list = overlay.querySelector('.comment-list');
   list.innerHTML = '';
   const video = videos.find(v=>v.id===videoId);
+  const docRef = db.collection("videos").doc(video.docId);
+  const docSnap = await docRef.get();
+  const data = docSnap.data() || {likes:0, comments:[]};
 
-  video.comments.forEach((c,i)=>{
+  data.comments.forEach((c,i)=>{
     const div = document.createElement('div');
     div.className='comment-item';
     div.innerHTML = `
@@ -308,21 +335,34 @@ function renderOverlay(videoId){
   });
 
   overlay.querySelectorAll('.comment-item button').forEach(btn=>{
-    btn.addEventListener('click', e=>{
+    btn.addEventListener('click', async e=>{
       e.stopPropagation();
-      deleteComment(Number(btn.dataset.video), Number(btn.dataset.index));
+      data.comments.splice(Number(btn.dataset.index),1);
+      await db.collection("videos").doc(video.docId).update({ comments: data.comments });
+      renderOverlay(videoId);
     });
   });
 
   const input = document.getElementById(`comment-input-${videoId}`);
   input.onkeydown = e => { if(e.key==='Enter') postComment(videoId); };
+
+  // Update comment counter
+  const btnCounter = document.querySelector(`.side-buttons[data-video="${videoId}"] button:nth-child(2) span`);
+  if(btnCounter) btnCounter.textContent = data.comments.length;
+
+  // Update likes counter
+  const likeCounter = document.querySelector(`.side-buttons[data-video="${videoId}"] button:first-child span`);
+  if(likeCounter) likeCounter.textContent = data.likes;
 }
 
-function renderFeed(){
+// -------------------- Render Feed --------------------
+
+async function renderFeed(){
   const feed = document.getElementById('feed');
   feed.innerHTML = '';
 
-  videos.forEach(video=>{
+  for(const video of videos){
+    const docData = await fetchVideoData(video);
     const div = document.createElement('div');
     div.className='video-card';
     div.innerHTML = `
@@ -334,8 +374,8 @@ function renderFeed(){
         <video id="video-${video.id}" src="${video.video_url}" autoplay playsinline></video>
 
         <div class="side-buttons" data-video="${video.id}">
-          <button onclick="likeVideo(${video.id})">🔥<span>0</span></button>
-          <button onclick="togglePanel(${video.id},'comments')">💬<span>0</span></button>
+          <button onclick="likeVideo(${video.id})">🔥<span>${docData.likes}</span></button>
+          <button onclick="togglePanel(${video.id},'comments')">💬<span>${docData.comments.length}</span></button>
         </div>
 
         <div class="comment-overlay" id="overlay-${video.id}">
@@ -362,9 +402,9 @@ function renderFeed(){
 
     const vid = document.getElementById(`video-${video.id}`);
     vid.addEventListener('click', ()=>togglePlay(vid));
-  });
+  }
 
-  // Autoplay only the video closest to center
+  // Play only the video closest to center
   const allVideos = document.querySelectorAll('video');
   function playCenteredVideo() {
     const viewportCenter = window.innerHeight / 2;
@@ -392,7 +432,8 @@ function renderFeed(){
   window.addEventListener('load', playCenteredVideo);
 }
 
-// Close comment overlay when clicking outside
+// -------------------- Close Comments When Clicking Outside --------------------
+
 document.addEventListener('click', e => {
   videos.forEach(v => {
     const overlay = document.getElementById(`overlay-${v.id}`);
@@ -410,28 +451,9 @@ document.addEventListener('touchstart', e => {
   });
 });
 
+// -------------------- Initialize --------------------
+
 renderFeed();
 </script>
-
-<!-- Firebase SDKs -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-
-<script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyCgaFQ7EZiKB1LQYbtxwWJ8FkwfRd5iI60",
-    authDomain: "brokenchainsmc-f14e5.firebaseapp.com",
-    projectId: "brokenchainsmc-f14e5",
-    storageBucket: "brokenchainsmc-f14e5.firebasestorage.app",
-    messagingSenderId: "30166542756",
-    appId: "1:30166542756:web:9797ba4dab1e7689c5f931"
-  };
-
-  firebase.initializeApp(firebaseConfig);
-  firebase.auth().signInAnonymously();
-  const db = firebase.firestore();
-</script>
-
 </body>
 </html>
