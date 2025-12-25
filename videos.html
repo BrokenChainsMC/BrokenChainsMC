@@ -207,15 +207,24 @@ video {
 <div id="feed"></div>
 
 <script>
+// Video data
 const videos = [
-  { id:2, video_url:"videos/v2.mp4", docId:"v2", likes:0, comments:[] },
-  { id:1, video_url:"videos/v1.mp4", docId:"v1", likes:0, comments:[] },
-  { id:3, video_url:"videos/v3.mp4", docId:"v3", likes:0, comments:[] },
-  { id:4, video_url:"videos/v4.mp4", docId:"v4", likes:0, comments:[] },
-  { id:5, video_url:"videos/v5.mp4", docId:"v5", likes:0, comments:[] },
-  { id:6, video_url:"videos/v6.mp4", docId:"v6", likes:0, comments:[] },
-  { id:7, video_url:"videos/v7.mp4", docId:"v7", likes:0, comments:[] },
+  { id:1, video_url:"videos/v1.mp4", docId:"v1" },
+  { id:2, video_url:"videos/v2.mp4", docId:"v2" },
+  { id:3, video_url:"videos/v3.mp4", docId:"v3" },
+  { id:4, video_url:"videos/v4.mp4", docId:"v4" },
+  { id:5, video_url:"videos/v5.mp4", docId:"v5" },
+  { id:6, video_url:"videos/v6.mp4", docId:"v6" },
+  { id:7, video_url:"videos/v7.mp4", docId:"v7" },
 ];
+
+// Initialize likes/comments from localStorage
+videos.forEach(v=>{
+  const savedLikes = parseInt(localStorage.getItem(`likes-${v.id}`)) || 0;
+  v.likes = isNaN(savedLikes) ? 0 : savedLikes;
+  const savedComments = localStorage.getItem(`comments-${v.id}`);
+  v.comments = savedComments ? JSON.parse(savedComments) : [];
+});
 
 function togglePanel(id,type){
   const bio = document.getElementById(`bio-${id}`);
@@ -234,19 +243,19 @@ function likeVideo(id){
   if(!video) return;
   const likedKey = `liked-${id}`;
   if(localStorage.getItem(likedKey)){
-    video.likes--;
+    video.likes = Math.max(0, video.likes - 1);
     localStorage.removeItem(likedKey);
   } else {
     video.likes++;
     localStorage.setItem(likedKey,'true');
   }
-  localStorage.setItem(`likes-${id}`,video.likes);
+  localStorage.setItem(`likes-${id}`, video.likes);
+
   const likeBtn = document.querySelector(`.side-buttons[data-video="${id}"] button:first-child span`);
   if(likeBtn) likeBtn.textContent = video.likes;
 
   // Update Firestore
-  const videoRef = db.collection('videos').doc(video.docId);
-  videoRef.update({ likes: video.likes });
+  db.collection('videos').doc(video.docId).update({ likes: video.likes });
 }
 
 function postComment(id){
@@ -254,13 +263,13 @@ function postComment(id){
   if(!input.value) return;
   const video = videos.find(v=>v.id===id);
   video.comments.push({text: input.value, user:"Anonymous"});
+  localStorage.setItem(`comments-${id}`, JSON.stringify(video.comments));
   input.value = "";
   renderOverlay(id);
   updateCommentCount(id);
 
   // Update Firestore
-  const videoRef = db.collection('videos').doc(video.docId);
-  videoRef.update({ comments: video.comments });
+  db.collection('videos').doc(video.docId).update({ comments: video.comments });
 }
 
 function updateCommentCount(id){
@@ -273,12 +282,12 @@ function deleteComment(videoId,index){
   const video = videos.find(v=>v.id===videoId);
   if(!video) return;
   video.comments.splice(index,1);
+  localStorage.setItem(`comments-${videoId}`, JSON.stringify(video.comments));
   renderOverlay(videoId);
   updateCommentCount(videoId);
 
   // Update Firestore
-  const videoRef = db.collection('videos').doc(video.docId);
-  videoRef.update({ comments: video.comments });
+  db.collection('videos').doc(video.docId).update({ comments: video.comments });
 }
 
 function togglePlay(video){
@@ -330,8 +339,8 @@ function renderFeed(){
         <video id="video-${video.id}" src="${video.video_url}" autoplay playsinline></video>
 
         <div class="side-buttons" data-video="${video.id}">
-          <button onclick="likeVideo(${video.id})">🔥<span>${video.likes||0}</span></button>
-          <button onclick="togglePanel(${video.id},'comments')">💬<span>${video.comments.length||0}</span></button>
+          <button onclick="likeVideo(${video.id})">🔥<span>${video.likes}</span></button>
+          <button onclick="togglePanel(${video.id},'comments')">💬<span>${video.comments.length}</span></button>
         </div>
 
         <div class="comment-overlay" id="overlay-${video.id}">
@@ -360,7 +369,7 @@ function renderFeed(){
     vid.addEventListener('click', ()=>togglePlay(vid));
   });
 
-  // Play only the video closest to center (TikTok style)
+  // TikTok-style auto pause/play
   const allVideos = document.querySelectorAll('video');
   function playCenteredVideo() {
     const viewportCenter = window.innerHeight / 2;
@@ -388,7 +397,7 @@ function renderFeed(){
   window.addEventListener('load', playCenteredVideo);
 }
 
-// Close comment overlay when clicking outside, without pausing videos
+// Close comments overlay on outside click
 document.addEventListener('click', e => {
   videos.forEach(v => {
     const overlay = document.getElementById(`overlay-${v.id}`);
@@ -406,7 +415,6 @@ document.addEventListener('touchstart', e => {
   });
 });
 
-// Render feed after Firebase loads
 renderFeed();
 </script>
 
@@ -416,33 +424,19 @@ renderFeed();
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <script>
-const firebaseConfig = {
-  apiKey: "AIzaSyCgaFQ7EZiKB1LQbtxwWJ8FkwfRd5iI60",
-  authDomain: "brokenchainsmc-f14e5.firebaseapp.com",
-  projectId: "brokenchainsmc-f14e5",
-  storageBucket: "brokenchainsmc-f14e5.firebasestorage.app",
-  messagingSenderId: "30166542756",
-  appId: "1:30166542756:web:9797ba4dab1e7689c5f931"
-};
-firebase.initializeApp(firebaseConfig);
-firebase.auth().signInAnonymously();
-const db = firebase.firestore();
+  const firebaseConfig = {
+    apiKey: "AIzaSyCgaFQ7EZiKB1LQYbtxwWJ8FkwfRd5iI60",
+    authDomain: "brokenchainsmc-f14e5.firebaseapp.com",
+    projectId: "brokenchainsmc-f14e5",
+    storageBucket: "brokenchainsmc-f14e5.firebasestorage.app",
+    messagingSenderId: "30166542756",
+    appId: "1:30166542756:web:9797ba4dab1e7689c5f931"
+  };
 
-// Real-time updates for likes and comments
-videos.forEach(v => {
-  db.collection('videos').doc(v.docId).onSnapshot(doc => {
-    if(doc.exists){
-      const data = doc.data();
-      v.likes = data.likes || 0;
-      v.comments = data.comments || [];
-      const likeBtn = document.querySelector(`.side-buttons[data-video="${v.id}"] button:first-child span`);
-      if(likeBtn) likeBtn.textContent = v.likes;
-      renderOverlay(v.id);
-    }
-  });
-});
+  firebase.initializeApp(firebaseConfig);
+  firebase.auth().signInAnonymously();
+  const db = firebase.firestore();
 </script>
 
 </body>
 </html>
-
