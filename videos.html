@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Broken Chains MC | Feed</title>
+<style>
+* { box-sizing:border-box; margin:0; padding:0; font-family:Arial, Helvetica, sans-serif; }
+
+body {
+  margin: 0;
+  background: url(images/background.webp) no-repeat center center fixed;
+  background-size: cover;
+  position: relative;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: -1;
+}
+
+#feed {
+  max-width:500px;
+  margin:auto;
+  background: rgba(0,0,0,0.6);
+  border-radius: 10px;
+}
+
+.video-card { position:relative; overflow:hidden; margin-bottom:15px; }
+
+.poster-header {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:10px;
+  background:rgba(0,0,0,0.7);
+  border-bottom:1px solid #222;
+  z-index:2;
+  position:relative;
+}
+
+.poster-header img {
+  width:42px;
+  height:42px;
+  border-radius:50%;
+  border:2px solid darkred;
+}
+
+video {
+  width:100%;
+  max-height:80vh; 
+  object-fit:contain;
+  background:black;
+  cursor:pointer;
+  display:block;
+}
+
+.controls {
+  padding:10px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  width:100%;
+  position:relative;
+  z-index:2;
+}
+
+.bio-toggle {
+  padding:8px;
+  background:#111;
+  border:1px solid #222;
+  color:darkred;
+  text-align:center;
+  cursor:pointer;
+  font-weight:bold;
+  margin-top:5px;
+}
+
+.bio {
+  max-height:0;
+  overflow:hidden;
+  background:rgba(0,0,0,0.85);
+  color:#ccc;
+  border-top:1px solid #222;
+  transition: max-height 0.5s ease;
+  border-radius:4px 4px 0 0;
+}
+
+.bio-content { padding:10px; white-space: pre-line; }
+
+.side-buttons { 
+  position:absolute; 
+  right:10px; 
+  top:50%; 
+  transform:translateY(-50%); 
+  display:flex; 
+  flex-direction:column; 
+  gap:20px; 
+  z-index:20; 
+}
+
+.side-buttons button { 
+  background:none; 
+  border:none; 
+  color:#fff; 
+  font-size:32px; 
+  cursor:pointer; 
+  text-shadow:0 0 5px #000; 
+  display:flex; 
+  flex-direction:column; 
+  align-items:center; 
+}
+
+.side-buttons span { 
+  font-size:14px; 
+  color:#fff; 
+  margin-top:2px; 
+  text-shadow:0 0 5px #000; 
+}
+
+.comment-overlay {
+  position:absolute;
+  left:0;
+  width:100%;
+  height:70%;
+  bottom:0;
+  background:#fff;
+  z-index:50;
+  display:none;
+  flex-direction:column;
+  overflow:hidden;
+  border-radius:10px 10px 0 0;
+}
+
+.comment-list {
+  flex:1;
+  overflow-y:auto;
+  padding:10px;
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+}
+
+.comment-item {
+  background:#f0f0f0;
+  padding:6px 10px;
+  border-radius:8px;
+  display:flex;
+  flex-direction:column;
+  color:#000;
+}
+
+.comment-item .username { 
+  font-weight:bold; 
+  font-size:12px; 
+  margin-bottom:2px; 
+  color:grey; 
+}
+
+.comment-item button { 
+  background:none; 
+  border:none; 
+  color:darkred; 
+  cursor:pointer; 
+  align-self:flex-end; 
+  font-size:14px; 
+  opacity:0; 
+  transition: opacity 0.2s; 
+}
+
+.comment-item:hover button { opacity:1; }
+
+.comment-input {
+  display:flex;
+  padding:5px;
+  border-top:1px solid #ccc;
+  gap:5px;
+  background:#eee;
+}
+
+.comment-input input {
+  flex:1;
+  padding:8px;
+  border:1px solid #ccc;
+}
+
+.comment-input button {
+  padding:8px;
+  background:darkred;
+  border:none;
+  color:white;
+  cursor:pointer;
+}
+</style>
+</head>
+<body>
+
+<div id="feed"></div>
+
+<script>
+const videos = [
+  { id:1, video_url:"videos/v1.mp4" },
+  { id:2, video_url:"videos/v2.mp4" },
+  { id:3, video_url:"videos/v3.mp4" },
+  { id:4, video_url:"videos/v4.mp4" },
+  { id:5, video_url:"videos/v5.mp4" },
+  { id:6, video_url:"videos/v6.mp4" },
+  { id:7, video_url:"videos/v7.mp4" }
+];
+
+videos.forEach(v=>{
+  const savedLikes = localStorage.getItem(`likes-${v.id}`);
+  if(savedLikes) v.likes = parseInt(savedLikes);
+  const savedComments = localStorage.getItem(`comments-${v.id}`);
+  if(savedComments) v.comments = JSON.parse(savedComments);
+});
+
+function togglePanel(id,type){
+  const bio = document.getElementById(`bio-${id}`);
+  const overlay = document.getElementById(`overlay-${id}`);
+  if(type==='bio'){
+    bio.style.maxHeight = bio.style.maxHeight==='0px'||bio.style.maxHeight==='' ? bio.scrollHeight+'px' : '0';
+  }
+  if(type==='comments'){
+    renderOverlay(id);
+    overlay.style.display = 'flex';
+  }
+}
+
+function likeVideo(id){
+  const video = videos.find(v=>v.id===id);
+  if(!video) return;
+  const likedKey = `liked-${id}`;
+  if(localStorage.getItem(likedKey)){
+    video.likes--;
+    localStorage.removeItem(likedKey);
+  } else {
+    video.likes++;
+    localStorage.setItem(likedKey,'true');
+  }
+  localStorage.setItem(`likes-${id}`,video.likes);
+
+  const likeBtn = document.querySelector(`.side-buttons[data-video="${id}"] button:first-child span`);
+  if(likeBtn) likeBtn.textContent = video.likes;
+}
+
+function postComment(id){
+  const input = document.getElementById(`comment-input-${id}`);
+  if(!input.value) return;
+  const video = videos.find(v=>v.id===id);
+  video.comments.push({text: input.value, user:"Anonymous"});
+  localStorage.setItem(`comments-${id}`, JSON.stringify(video.comments));
+  input.value = "";
+  renderOverlay(id);
+  updateCommentCount(id);
+}
+
+function updateCommentCount(id){
+  const btn = document.querySelector(`.side-buttons[data-video="${id}"] button:nth-child(2) span`);
+  const video = videos.find(v=>v.id===id);
+  btn.textContent = video.comments.length;
+}
+
+function deleteComment(videoId,index){
+  const video = videos.find(v=>v.id===videoId);
+  if(!video) return;
+  video.comments.splice(index,1);
+  localStorage.setItem(`comments-${videoId}`, JSON.stringify(video.comments));
+  renderOverlay(videoId);
+  updateCommentCount(videoId);
+}
+
+function togglePlay(video){
+  if(video.paused) video.play();
+  else video.pause();
+}
+
+function renderOverlay(videoId){
+  const overlay = document.getElementById(`overlay-${videoId}`);
+  const list = overlay.querySelector('.comment-list');
+  list.innerHTML = '';
+  const video = videos.find(v=>v.id===videoId);
+
+  video.comments.forEach((c,i)=>{
+    const div = document.createElement('div');
+    div.className='comment-item';
+    div.innerHTML = `
+      <div class="username">Anonymous</div>
+      ${c.text}
+      <button data-video="${videoId}" data-index="${i}">❌</button>
+    `;
+    list.appendChild(div);
+  });
+
+  overlay.querySelectorAll('.comment-item button').forEach(btn=>{
+    btn.addEventListener('click', e=>{
+      e.stopPropagation();
+      deleteComment(Number(btn.dataset.video), Number(btn.dataset.index));
+    });
+  });
+
+  const input = document.getElementById(`comment-input-${videoId}`);
+  input.onkeydown = e => { if(e.key==='Enter') postComment(videoId); };
+}
+
+function renderFeed(){
+  const feed = document.getElementById('feed');
+  feed.innerHTML = '';
+
+  videos.forEach(video=>{
+    const div = document.createElement('div');
+    div.className='video-card';
+    div.innerHTML = `
+      <div class="poster-header">
+        <img src="images/logo.png">
+        <div><strong style="color:white">Broken Chains MC</strong></div>
+      </div>
+      <div class="video-wrapper" style="position:relative;">
+        <video id="video-${video.id}" src="${video.video_url}" autoplay playsinline></video>
+
+        <div class="side-buttons" data-video="${video.id}">
+          <button onclick="likeVideo(${video.id})">🔥<span>${video.likes||0}</span></button>
+          <button onclick="togglePanel(${video.id},'comments')">💬<span>${video.comments?video.comments.length:0}</span></button>
+        </div>
+
+        <div class="comment-overlay" id="overlay-${video.id}">
+          <div class="comment-list"></div>
+          <div class="comment-input">
+            <input id="comment-input-${video.id}" placeholder="Add a comment">
+            <button onclick="postComment(${video.id})">Post</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button class="bio-toggle" onclick="togglePanel(${video.id},'bio')">⛓️ Tag List</button>
+        <div class="bio" id="bio-${video.id}">
+          <div class="bio-content">
+⫘⫘⫘⫘⫘⫘⫘
+𝟒𝟔𝐌𝐂  𝐁𝐑𝐎𝐊𝐄𝐍 𝐂𝐇𝐀𝐈𝐍𝐒 𝐇𝐄𝐈𝐑𝐀𝐂𝐇𝐘
+...
+          </div>
+        </div>
+      </div>
+    `;
+    feed.appendChild(div);
+
+    const vid = document.getElementById(`video-${video.id}`);
+    vid.addEventListener('click', ()=>togglePlay(vid));
+  });
+
+  const allVideos = document.querySelectorAll('video');
+
+  // Play the first video immediately
+  if(allVideos.length) allVideos[0].play().catch(()=>{});
+
+  function playCenteredVideo() {
+    const viewportCenter = window.innerHeight / 2;
+    let closestVideo = null;
+    let closestDistance = Infinity;
+
+    allVideos.forEach(v => {
+      const rect = v.getBoundingClientRect();
+      const videoCenter = rect.top + rect.height / 2;
+      const distance = Math.abs(viewportCenter - videoCenter);
+      if(distance < closestDistance){
+        closestDistance = distance;
+        closestVideo = v;
+      }
+    });
+
+    allVideos.forEach(v => {
+      if(v === closestVideo) v.play().catch(()=>{});
+      else v.pause();
+    });
+  }
+
+  window.addEventListener('scroll', playCenteredVideo);
+  window.addEventListener('resize', playCenteredVideo);
+  window.addEventListener('load', playCenteredVideo);
+}
+
+// Close comment overlay when clicking outside, without pausing videos
+document.addEventListener('click', e => {
+  videos.forEach(v => {
+    const overlay = document.getElementById(`overlay-${v.id}`);
+    if (overlay.style.display === 'flex' && !overlay.contains(e.target) && !e.target.closest('.side-buttons button')) {
+      overlay.style.display = 'none';
+    }
+  });
+});
+document.addEventListener('touchstart', e => {
+  videos.forEach(v => {
+    const overlay = document.getElementById(`overlay-${v.id}`);
+    if (overlay.style.display === 'flex' && !overlay.contains(e.target) && !e.target.closest('.side-buttons button')) {
+      overlay.style.display = 'none';
+    }
+  });
+});
+
+renderFeed();
+</script>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyCgaFQ7EZiKB1LQYbtxwWJ8FkwfRd5iI60",
+    authDomain: "brokenchainsmc-f14e5.firebaseapp.com",
+    projectId: "brokenchainsmc-f14e5",
+    storageBucket: "brokenchainsmc-f14e5.firebasestorage.app",
+    messagingSenderId: "30166542756",
+    appId: "1:30166542756:web:9797ba4dab1e7689c5f931"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  firebase.auth().signInAnonymously();
+  const db = firebase.firestore();
+</script>
+
+</body>
+</html>
