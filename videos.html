@@ -207,24 +207,15 @@ video {
 <div id="feed"></div>
 
 <script>
-// Video data
 const videos = [
-  { id:1, video_url:"videos/v1.mp4", docId:"v1" },
-  { id:2, video_url:"videos/v2.mp4", docId:"v2" },
-  { id:3, video_url:"videos/v3.mp4", docId:"v3" },
-  { id:4, video_url:"videos/v4.mp4", docId:"v4" },
-  { id:5, video_url:"videos/v5.mp4", docId:"v5" },
-  { id:6, video_url:"videos/v6.mp4", docId:"v6" },
-  { id:7, video_url:"videos/v7.mp4", docId:"v7" },
+  { id:1, video_url:"videos/v1.mp4", docId:"v1", likes:0, comments:[] },
+  { id:2, video_url:"videos/v2.mp4", docId:"v2", likes:0, comments:[] },
+  { id:3, video_url:"videos/v3.mp4", docId:"v3", likes:0, comments:[] },
+  { id:4, video_url:"videos/v4.mp4", docId:"v4", likes:0, comments:[] },
+  { id:5, video_url:"videos/v5.mp4", docId:"v5", likes:0, comments:[] },
+  { id:6, video_url:"videos/v6.mp4", docId:"v6", likes:0, comments:[] },
+  { id:7, video_url:"videos/v7.mp4", docId:"v7", likes:0, comments:[] },
 ];
-
-// Initialize likes/comments from localStorage
-videos.forEach(v=>{
-  const savedLikes = parseInt(localStorage.getItem(`likes-${v.id}`)) || 0;
-  v.likes = isNaN(savedLikes) ? 0 : savedLikes;
-  const savedComments = localStorage.getItem(`comments-${v.id}`);
-  v.comments = savedComments ? JSON.parse(savedComments) : [];
-});
 
 function togglePanel(id,type){
   const bio = document.getElementById(`bio-${id}`);
@@ -238,10 +229,14 @@ function togglePanel(id,type){
   }
 }
 
+// ✅ Like function fixed to prevent negative values
 function likeVideo(id){
   const video = videos.find(v=>v.id===id);
   if(!video) return;
   const likedKey = `liked-${id}`;
+  
+  video.likes = parseInt(video.likes) || 0;
+
   if(localStorage.getItem(likedKey)){
     video.likes = Math.max(0, video.likes - 1);
     localStorage.removeItem(likedKey);
@@ -249,12 +244,14 @@ function likeVideo(id){
     video.likes++;
     localStorage.setItem(likedKey,'true');
   }
+
   localStorage.setItem(`likes-${id}`, video.likes);
 
+  // Update UI
   const likeBtn = document.querySelector(`.side-buttons[data-video="${id}"] button:first-child span`);
   if(likeBtn) likeBtn.textContent = video.likes;
 
-  // Update Firestore
+  // Firestore update
   db.collection('videos').doc(video.docId).update({ likes: video.likes });
 }
 
@@ -263,12 +260,11 @@ function postComment(id){
   if(!input.value) return;
   const video = videos.find(v=>v.id===id);
   video.comments.push({text: input.value, user:"Anonymous"});
-  localStorage.setItem(`comments-${id}`, JSON.stringify(video.comments));
   input.value = "";
   renderOverlay(id);
   updateCommentCount(id);
 
-  // Update Firestore
+  // Firestore update
   db.collection('videos').doc(video.docId).update({ comments: video.comments });
 }
 
@@ -282,11 +278,10 @@ function deleteComment(videoId,index){
   const video = videos.find(v=>v.id===videoId);
   if(!video) return;
   video.comments.splice(index,1);
-  localStorage.setItem(`comments-${videoId}`, JSON.stringify(video.comments));
   renderOverlay(videoId);
   updateCommentCount(videoId);
 
-  // Update Firestore
+  // Firestore update
   db.collection('videos').doc(video.docId).update({ comments: video.comments });
 }
 
@@ -339,8 +334,8 @@ function renderFeed(){
         <video id="video-${video.id}" src="${video.video_url}" autoplay playsinline></video>
 
         <div class="side-buttons" data-video="${video.id}">
-          <button onclick="likeVideo(${video.id})">🔥<span>${video.likes}</span></button>
-          <button onclick="togglePanel(${video.id},'comments')">💬<span>${video.comments.length}</span></button>
+          <button onclick="likeVideo(${video.id})">🔥<span>0</span></button>
+          <button onclick="togglePanel(${video.id},'comments')">💬<span>0</span></button>
         </div>
 
         <div class="comment-overlay" id="overlay-${video.id}">
@@ -369,7 +364,7 @@ function renderFeed(){
     vid.addEventListener('click', ()=>togglePlay(vid));
   });
 
-  // TikTok-style auto pause/play
+  // Autoplay only the video closest to center
   const allVideos = document.querySelectorAll('video');
   function playCenteredVideo() {
     const viewportCenter = window.innerHeight / 2;
@@ -397,7 +392,7 @@ function renderFeed(){
   window.addEventListener('load', playCenteredVideo);
 }
 
-// Close comments overlay on outside click
+// Close comment overlay when clicking outside
 document.addEventListener('click', e => {
   videos.forEach(v => {
     const overlay = document.getElementById(`overlay-${v.id}`);
