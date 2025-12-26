@@ -4,8 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Broken Chains MC | Feed</title>
+
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Metal+Mania&display=swap');
+
 * { box-sizing:border-box; margin:0; padding:0; font-family:Arial, Helvetica, sans-serif; }
+
+header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
 
 body {
   margin: 0;
@@ -28,9 +37,43 @@ body::before {
   z-index: -1;
 }
 
+/* ===== HEADER ===== */
+header {
+  background: #000;
+  padding: 30px 20px 20px;
+  text-align: center;
+  border-bottom: 2px solid #b30000;
+}
+
+header h1 {
+  margin: 0;
+  letter-spacing: 4px;
+  font-family: 'Metal Mania', cursive;
+  font-size: 48px;
+  text-transform: uppercase;
+  color: #ffffff;
+}
+
+nav {
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+nav a {
+  color: #b30000;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+nav a:hover {
+  color: #ffffff;
+}
+/* ===== END HEADER ===== */
+
 #feed {
   max-width:500px;
-  margin:auto;
+  margin:20px auto;
   background: rgba(0,0,0,0.6);
   border-radius: 10px;
 }
@@ -127,6 +170,7 @@ video {
   text-shadow:0 0 5px #000; 
 }
 
+/* comment styles unchanged */
 .comment-overlay {
   position:absolute;
   left:0;
@@ -202,7 +246,17 @@ video {
 }
 </style>
 </head>
+
 <body>
+
+<header>
+  <h1>Broken Chains Motorcycle Club</h1>
+  <nav>
+    <div align="center">
+      <a href="index.html">Home</a>
+    </div>
+  </nav>
+</header>
 
 <div id="feed"></div>
 
@@ -464,4 +518,3 @@ renderFeed();
 </script>
 </body>
 </html>
-
