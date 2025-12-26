@@ -206,13 +206,27 @@ video {
 
 <div id="feed"></div>
 
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
 <script>
-// Generate unique user ID per device
-let userId = localStorage.getItem('userId');
-if(!userId){
-  userId = '_' + Math.random().toString(36).substr(2, 9);
-  localStorage.setItem('userId', userId);
-}
+const adminUser = "admin";
+
+// Firebase config
+const firebaseConfig = {
+  apiKey: "AIzaSyCgaFQ7EZiKB1LQYbtxwWJ8FkwfRd5iI60",
+  authDomain: "brokenchainsmc-f14e5.firebaseapp.com",
+  projectId: "brokenchainsmc-f14e5",
+  storageBucket: "brokenchainsmc-f14e5.firebasestorage.app",
+  messagingSenderId: "30166542756",
+  appId: "1:30166542756:web:9797ba4dab1e7689c5f931"
+};
+
+firebase.initializeApp(firebaseConfig);
+firebase.auth().signInAnonymously();
+const db = firebase.firestore();
 
 const videos = [
   { id:1, video_url:"videos/v1.mp4", likes:0, comments:[] },
@@ -223,6 +237,18 @@ const videos = [
   { id:6, video_url:"videos/v6.mp4", likes:0, comments:[] },
   { id:7, video_url:"videos/v7.mp4", likes:0, comments:[] },
 ];
+
+// Load data from Firestore
+videos.forEach(async v => {
+  const doc = await db.collection('videos').doc(String(v.id)).get();
+  if(doc.exists){
+    const data = doc.data();
+    v.likes = data.likes || 0;
+    v.comments = data.comments || [];
+  } else {
+    db.collection('videos').doc(String(v.id)).set({likes:0, comments:[]});
+  }
+});
 
 function togglePanel(id,type){
   const bio = document.getElementById(`bio-${id}`);
@@ -236,60 +262,53 @@ function togglePanel(id,type){
   }
 }
 
-// Like logic
-function likeVideo(id){
+async function likeVideo(id){
   const video = videos.find(v=>v.id===id);
   if(!video) return;
 
-  const likedKey = `liked-${id}-${userId}`;
-  if(localStorage.getItem(likedKey)){
-    video.likes--;
-    localStorage.removeItem(likedKey);
-  } else {
-    video.likes++;
-    localStorage.setItem(likedKey,'true');
-  }
+  video.likes++;
+  await db.collection('videos').doc(String(id)).update({likes: video.likes});
 
-  // Update only the like counter visually
-  const likeBtn = document.querySelector(`.side-buttons[data-video="${id}"] button:first-child span`);
-  if(likeBtn) likeBtn.textContent = video.likes;
+  // Update only the like count visually
+  const likeSpan = document.querySelector(`.side-buttons[data-video="${id}"] button:first-child span`);
+  if(likeSpan) likeSpan.textContent = video.likes;
 }
 
-// Post comment with userId
-function postComment(id){
+async function postComment(id){
   const input = document.getElementById(`comment-input-${id}`);
   if(!input.value) return;
   const video = videos.find(v=>v.id===id);
-  video.comments.push({text: input.value, user:"Anonymous", userId});
+
+  video.comments.push({text: input.value, user: adminUser});
+  await db.collection('videos').doc(String(id)).update({comments: video.comments});
+
   input.value = "";
   renderOverlay(id);
   updateCommentCount(id);
 }
 
-// Update comment counter
 function updateCommentCount(id){
   const btn = document.querySelector(`.side-buttons[data-video="${id}"] button:nth-child(2) span`);
   const video = videos.find(v=>v.id===id);
   btn.textContent = video.comments.length;
 }
 
-// Delete only own comment
-function deleteComment(videoId,index){
+async function deleteComment(videoId,index){
   const video = videos.find(v=>v.id===videoId);
   if(!video) return;
-  if(video.comments[index].userId !== userId) return;
+
   video.comments.splice(index,1);
+  await db.collection('videos').doc(String(videoId)).update({comments: video.comments});
+
   renderOverlay(videoId);
   updateCommentCount(videoId);
 }
 
-// Toggle play/pause
 function togglePlay(video){
   if(video.paused) video.play();
   else video.pause();
 }
 
-// Render comment overlay
 function renderOverlay(videoId){
   const overlay = document.getElementById(`overlay-${videoId}`);
   const list = overlay.querySelector('.comment-list');
@@ -299,11 +318,10 @@ function renderOverlay(videoId){
   video.comments.forEach((c,i)=>{
     const div = document.createElement('div');
     div.className='comment-item';
-    const canDelete = c.userId === userId;
     div.innerHTML = `
       <div class="username">Anonymous</div>
       ${c.text}
-      ${canDelete ? `<button data-video="${videoId}" data-index="${i}">❌</button>` : ''}
+      ${c.user===adminUser?`<button data-video="${videoId}" data-index="${i}">❌</button>`:''}
     `;
     list.appendChild(div);
   });
@@ -319,7 +337,6 @@ function renderOverlay(videoId){
   input.onkeydown = e => { if(e.key==='Enter') postComment(videoId); };
 }
 
-// Render feed
 function renderFeed(){
   const feed = document.getElementById('feed');
   feed.innerHTML = '';
@@ -355,40 +372,7 @@ function renderFeed(){
           <div class="bio-content">
 ⫘⫘⫘⫘⫘⫘⫘
 𝟒𝟔𝐌𝐂  𝐁𝐑𝐎𝐊𝐄𝐍 𝐂𝐇𝐀𝐈𝐍𝐒 𝐇𝐄𝐈𝐑𝐀𝐂𝐇𝐘
-𝐅𝐎𝐑 𝐌𝐎𝐑𝐄 𝐂𝐎𝐍𝐓𝐄𝐍𝐓 𝐅𝐎𝐋𝐋𝐎𝐖
-
-𝕀ℕ𝕊𝕋𝔸𝔾ℝ𝔸𝕄 @46broken_chains_mc
-
-𝕋𝕀𝕂 𝕋𝕆𝕂
-46brokenchainsmc
-
-⫘⫘⫘⫘⫘⫘⫘
-
-𝐏𝐫𝐞𝐬𝐢𝐝𝐞𝐧𝐭 
-@chainedxdisciple
-𝐕𝐢𝐜𝐞 𝐏𝐫𝐞𝐬𝐢𝐝𝐞𝐧𝐭
-@chainedxobey
-𝐒𝐞𝐫𝐠𝐞𝐚𝐧𝐭-𝐚𝐭-𝐀𝐫𝐦𝐬
-@chainedxcriptic
-𝐑𝐨𝐚𝐝 𝐂𝐚𝐩𝐭𝐚𝐢𝐧
-Open
-𝐓𝐫𝐞𝐚𝐬𝐮𝐫𝐞𝐫 
-Open
-𝐒𝐞𝐜𝐫𝐞𝐭𝐚𝐫𝐲
-@chainedxrose
-𝐄𝐧𝐟𝐨𝐫𝐜𝐞𝐫 
-Open
-𝐓𝐚𝐢𝐥 𝐆𝐮𝐧𝐧𝐞𝐫
-Open
-⫘⫘⫘⫘⫘⫘⫘
-
-𝐅𝐮𝐥𝐥 𝐏𝐚𝐭𝐜𝐡 
-N/A
-⫘⫘⫘⫘⫘⫘⫘
-
- 𝐏𝐫𝐨𝐬𝐩𝐞𝐜𝐭 
-@chainedxhera
-⫘⫘⫘⫘⫘⫘⫘
+...
           </div>
         </div>
       </div>
@@ -426,7 +410,6 @@ N/A
   window.addEventListener('load', playCenteredVideo);
 }
 
-// Close comment overlay on outside click
 document.addEventListener('click', e => {
   videos.forEach(v => {
     const overlay = document.getElementById(`overlay-${v.id}`);
@@ -446,27 +429,5 @@ document.addEventListener('touchstart', e => {
 
 renderFeed();
 </script>
-
-<!-- Firebase SDKs -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-
-<script>
-const firebaseConfig = {
-  apiKey: "AIzaSyCgaFQ7EZiKB1LQYbtxwWJ8FkwfRd5iI60",
-  authDomain: "brokenchainsmc-f14e5.firebaseapp.com",
-  projectId: "brokenchainsmc-f14e5",
-  storageBucket: "brokenchainsmc-f14e5.firebasestorage.app",
-  messagingSenderId: "30166542756",
-  appId: "1:30166542756:web:9797ba4dab1e7689c5f931"
-};
-
-firebase.initializeApp(firebaseConfig);
-firebase.auth().signInAnonymously();
-const db = firebase.firestore();
-</script>
-
 </body>
 </html>
-
