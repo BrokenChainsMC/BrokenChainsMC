@@ -37,6 +37,7 @@ body::before {
   z-index: -1;
 }
 
+/* ===== HEADER ===== */
 header {
   background: #000;
   padding: 30px 20px 20px;
@@ -68,6 +69,7 @@ nav a {
 nav a:hover {
   color: #ffffff;
 }
+/* ===== END HEADER ===== */
 
 #feed {
   max-width:500px;
@@ -161,8 +163,6 @@ video {
   align-items:center; 
 }
 
-.side-buttons button.liked { color: #ff3333; }
-
 .side-buttons span { 
   font-size:14px; 
   color:#fff; 
@@ -170,6 +170,7 @@ video {
   text-shadow:0 0 5px #000; 
 }
 
+/* comment styles unchanged */
 .comment-overlay {
   position:absolute;
   left:0;
@@ -202,15 +203,12 @@ video {
   color:#000;
 }
 
-.comment-item .meta-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2px;
+.comment-item .username { 
+  font-weight:bold; 
+  font-size:12px; 
+  margin-bottom:2px; 
+  color:grey; 
 }
-
-.comment-item .username { font-weight:bold; font-size:12px; color:grey; }
-.comment-item .timestamp { font-size: 10px; color: #888; }
 
 .comment-item button { 
   background:none; 
@@ -233,8 +231,19 @@ video {
   background:#eee;
 }
 
-.comment-input input { flex:1; padding:8px; border:1px solid #ccc; }
-.comment-input button { padding:8px; background:darkred; border:none; color:white; cursor:pointer; }
+.comment-input input {
+  flex:1;
+  padding:8px;
+  border:1px solid #ccc;
+}
+
+.comment-input button {
+  padding:8px;
+  background:darkred;
+  border:none;
+  color:white;
+  cursor:pointer;
+}
 </style>
 </head>
 
@@ -251,11 +260,15 @@ video {
 
 <div id="feed"></div>
 
+<!-- Firebase SDKs -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <script>
+const adminUser = "admin";
+
+// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyCgaFQ7EZiKB1LQYbtxwWJ8FkwfRd5iI60",
   authDomain: "brokenchainsmc-f14e5.firebaseapp.com",
@@ -266,50 +279,135 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
+firebase.auth().signInAnonymously();
 const db = firebase.firestore();
 
-let currentUserUid = null;
-
-firebase.auth().onAuthStateChanged((user) => {
-    if (user) {
-        currentUserUid = user.uid;
-        syncFirebaseData();
-    } else {
-        firebase.auth().signInAnonymously().catch((error) => {
-            console.error("Authentication Error:", error);
-        });
-    }
-});
-
 const videos = [
-  { id:1, video_url:"videos/v1.mp4", likes:0, likedBy: [], comments:[] },
-  { id:2, video_url:"videos/v2.mp4", likes:0, likedBy: [], comments:[] },
-  { id:3, video_url:"videos/v3.mp4", likes:0, likedBy: [], comments:[] },
-  { id:4, video_url:"videos/v4.mp4", likes:0, likedBy: [], comments:[] },
-  { id:5, video_url:"videos/v5.mp4", likes:0, likedBy: [], comments:[] },
-  { id:6, video_url:"videos/v6.mp4", likes:0, likedBy: [], comments:[] },
-  { id:7, video_url:"videos/v7.mp4", likes:0, likedBy: [], comments:[] },
+  { id:1, video_url:"videos/v1.mp4", likes:0, comments:[] },
+  { id:2, video_url:"videos/v2.mp4", likes:0, comments:[] },
+  { id:3, video_url:"videos/v3.mp4", likes:0, comments:[] },
+  { id:4, video_url:"videos/v4.mp4", likes:0, comments:[] },
+  { id:5, video_url:"videos/v5.mp4", likes:0, comments:[] },
+  { id:6, video_url:"videos/v6.mp4", likes:0, comments:[] },
+  { id:7, video_url:"videos/v7.mp4", likes:0, comments:[] },
 ];
 
-function renderFeed() {
+// Load data from Firestore
+videos.forEach(async v => {
+  const doc = await db.collection('videos').doc(String(v.id)).get();
+  if(doc.exists){
+    const data = doc.data();
+    v.likes = data.likes || 0;
+    v.comments = data.comments || [];
+  } else {
+    db.collection('videos').doc(String(v.id)).set({likes:0, comments:[]});
+  }
+});
+
+function togglePanel(id,type){
+  const bio = document.getElementById(`bio-${id}`);
+  const overlay = document.getElementById(`overlay-${id}`);
+  if(type==='bio'){
+    bio.style.maxHeight = bio.style.maxHeight==='0px'||bio.style.maxHeight==='' ? bio.scrollHeight+'px' : '0';
+  }
+  if(type==='comments'){
+    renderOverlay(id);
+    overlay.style.display = 'flex';
+  }
+}
+
+async function likeVideo(id){
+  const video = videos.find(v=>v.id===id);
+  if(!video) return;
+
+  video.likes++;
+  await db.collection('videos').doc(String(id)).update({likes: video.likes});
+
+  // Update only the like count visually
+  const likeSpan = document.querySelector(`.side-buttons[data-video="${id}"] button:first-child span`);
+  if(likeSpan) likeSpan.textContent = video.likes;
+}
+
+async function postComment(id){
+  const input = document.getElementById(`comment-input-${id}`);
+  if(!input.value) return;
+  const video = videos.find(v=>v.id===id);
+
+  video.comments.push({text: input.value, user: adminUser});
+  await db.collection('videos').doc(String(id)).update({comments: video.comments});
+
+  input.value = "";
+  renderOverlay(id);
+  updateCommentCount(id);
+}
+
+function updateCommentCount(id){
+  const btn = document.querySelector(`.side-buttons[data-video="${id}"] button:nth-child(2) span`);
+  const video = videos.find(v=>v.id===id);
+  btn.textContent = video.comments.length;
+}
+
+async function deleteComment(videoId,index){
+  const video = videos.find(v=>v.id===videoId);
+  if(!video) return;
+
+  video.comments.splice(index,1);
+  await db.collection('videos').doc(String(videoId)).update({comments: video.comments});
+
+  renderOverlay(videoId);
+  updateCommentCount(videoId);
+}
+
+function togglePlay(video){
+  if(video.paused) video.play();
+  else video.pause();
+}
+
+function renderOverlay(videoId){
+  const overlay = document.getElementById(`overlay-${videoId}`);
+  const list = overlay.querySelector('.comment-list');
+  list.innerHTML = '';
+  const video = videos.find(v=>v.id===videoId);
+
+  video.comments.forEach((c,i)=>{
+    const div = document.createElement('div');
+    div.className='comment-item';
+    div.innerHTML = `
+      <div class="username">Anonymous</div>
+      ${c.text}
+      ${c.user===adminUser?`<button data-video="${videoId}" data-index="${i}">❌</button>`:''}
+    `;
+    list.appendChild(div);
+  });
+
+  overlay.querySelectorAll('.comment-item button').forEach(btn=>{
+    btn.addEventListener('click', e=>{
+      e.stopPropagation();
+      deleteComment(Number(btn.dataset.video), Number(btn.dataset.index));
+    });
+  });
+
+  const input = document.getElementById(`comment-input-${videoId}`);
+  input.onkeydown = e => { if(e.key==='Enter') postComment(videoId); };
+}
+
+function renderFeed(){
   const feed = document.getElementById('feed');
   feed.innerHTML = '';
 
-  videos.forEach(video => {
+  videos.forEach(video=>{
     const div = document.createElement('div');
     div.className='video-card';
-    const isLiked = video.likedBy.includes(currentUserUid) ? 'liked' : '';
-
     div.innerHTML = `
       <div class="poster-header">
         <img src="images/logo.png">
         <div><strong style="color:white">Broken Chains MC</strong></div>
       </div>
       <div class="video-wrapper" style="position:relative;">
-        <video id="video-${video.id}" src="${video.video_url}" playsinline loop></video>
+        <video id="video-${video.id}" src="${video.video_url}" autoplay playsinline></video>
 
         <div class="side-buttons" data-video="${video.id}">
-          <button class="${isLiked}" onclick="likeVideo(${video.id})">🔥<span>${video.likes}</span></button>
+          <button onclick="likeVideo(${video.id})">🔥<span>${video.likes}</span></button>
           <button onclick="togglePanel(${video.id},'comments')">💬<span>${video.comments.length}</span></button>
         </div>
 
@@ -329,11 +427,38 @@ function renderFeed() {
 ⫘⫘⫘⫘⫘⫘⫘
 𝟒𝟔𝐌𝐂  𝐁𝐑𝐎𝐊𝐄𝐍 𝐂𝐇𝐀𝐈𝐍𝐒 𝐇𝐄𝐈𝐑𝐀𝐂𝐇𝐘
 𝐅𝐎𝐑 𝐌𝐎𝐑𝐄 𝐂𝐎𝐍𝐓𝐄𝐍𝐓 𝐅𝐎𝐋𝐋𝐎𝐖
+
 𝕀ℕ𝕊𝕋𝔸𝔾ℝ𝔸𝕄 @46broken_chains_mc
-𝕋𝕀𝕂 𝕋𝕆𝕂 46brokenchainsmc
+
+𝕋𝕀𝕂 𝕋𝕆𝕂
+46brokenchainsmc
+
 ⫘⫘⫘⫘⫘⫘⫘
-𝐏𝐫𝐞𝐬𝐢𝐝𝐞𝐧𝐭 @chainedxdisciple
-𝐕𝐢𝐜𝐞 𝐏𝐫𝐞𝐬𝐢𝐝𝐞𝐧𝐭 @chainedxobey
+
+𝐏𝐫𝐞𝐬𝐢𝐝𝐞𝐧𝐭 
+@chainedxdisciple
+𝐕𝐢𝐜𝐞 𝐏𝐫𝐞𝐬𝐢𝐝𝐞𝐧𝐭
+@chainedxobey
+𝐒𝐞𝐫𝐠𝐞𝐚𝐧𝐭-𝐚𝐭-𝐀𝐫𝐦𝐬
+@chainedxcriptic
+𝐑𝐨𝐚𝐝 𝐂𝐚𝐩𝐭𝐚𝐢𝐧
+Open
+𝐓𝐫𝐞𝐚𝐬𝐮𝐫𝐞𝐫 
+Open
+𝐒𝐞𝐜𝐫𝐞𝐭𝐚𝐫𝐲
+@chainedxrose
+𝐄𝐧𝐟𝐨𝐫𝐜𝐞𝐫 
+Open
+𝐓𝐚𝐢𝐥 𝐆𝐮𝐧𝐧𝐞𝐫
+Open
+⫘⫘⫘⫘⫘⫘⫘
+
+𝐅𝐮𝐥𝐥 𝐏𝐚𝐭𝐜𝐡 
+N/A
+⫘⫘⫘⫘⫘⫘⫘
+
+ 𝐏𝐫𝐨𝐬𝐩𝐞𝐜𝐭 
+@chainedxhera
 ⫘⫘⫘⫘⫘⫘⫘
           </div>
         </div>
@@ -341,170 +466,49 @@ function renderFeed() {
     `;
     feed.appendChild(div);
 
-    const vidElement = document.getElementById(`video-${video.id}`);
-    vidElement.addEventListener('click', () => {
-        if(vidElement.paused) {
-            vidElement.play();
-            vidElement.muted = false; // Ensure sound is on when clicked
-        } else {
-            vidElement.pause();
-        }
-    });
-  });
-  
-  setupAutoPlay();
-}
-
-async function syncFirebaseData() {
-    for (const v of videos) {
-        const docRef = db.collection('videos').doc(String(v.id));
-        const doc = await docRef.get();
-        if(doc.exists){
-            const data = doc.data();
-            v.likes = data.likes || 0;
-            v.likedBy = data.likedBy || [];
-            v.comments = data.comments || [];
-        } else {
-            await docRef.set({likes:0, likedBy: [], comments:[]});
-        }
-    }
-    updateInteractionCounts();
-}
-
-function updateInteractionCounts() {
-    videos.forEach(v => {
-        const sideBtns = document.querySelector(`.side-buttons[data-video="${v.id}"]`);
-        if(sideBtns) {
-            sideBtns.querySelector('button:first-child span').textContent = v.likes;
-            sideBtns.querySelector('button:nth-child(2) span').textContent = v.comments.length;
-            if(v.likedBy.includes(currentUserUid)) {
-                sideBtns.querySelector('button:first-child').classList.add('liked');
-            }
-        }
-    });
-}
-
-function togglePanel(id, type) {
-  const bio = document.getElementById(`bio-${id}`);
-  const overlay = document.getElementById(`overlay-${id}`);
-  if(type==='bio') {
-    bio.style.maxHeight = bio.style.maxHeight==='0px'||bio.style.maxHeight==='' ? bio.scrollHeight+'px' : '0';
-  }
-  if(type==='comments') {
-    renderOverlayComments(id);
-    overlay.style.display = 'flex';
-  }
-}
-
-async function likeVideo(id) {
-    if (!currentUserUid) return;
-    const video = videos.find(v => v.id === id);
-    if (!video) return;
-
-    const userIndex = video.likedBy.indexOf(currentUserUid);
-    if (userIndex > -1) {
-        video.likedBy.splice(userIndex, 1);
-    } else {
-        video.likedBy.push(currentUserUid);
-    }
-
-    video.likes = video.likedBy.length;
-    await db.collection('videos').doc(String(id)).update({
-        likes: video.likes,
-        likedBy: video.likedBy
-    });
-
-    const likeBtn = document.querySelector(`.side-buttons[data-video="${id}"] button:first-child`);
-    likeBtn.querySelector('span').textContent = video.likes;
-    video.likedBy.includes(currentUserUid) ? likeBtn.classList.add('liked') : likeBtn.classList.remove('liked');
-}
-
-async function postComment(id) {
-  const input = document.getElementById(`comment-input-${id}`);
-  const text = input.value.trim();
-  if(!text) return;
-  
-  const video = videos.find(v => v.id === id);
-  const newComment = { text: text, uid: currentUserUid, timestamp: Date.now() };
-
-  video.comments.push(newComment);
-  await db.collection('videos').doc(String(id)).update({comments: video.comments});
-
-  input.value = "";
-  renderOverlayComments(id);
-  updateInteractionCounts();
-}
-
-function renderOverlayComments(videoId) {
-  const overlay = document.getElementById(`overlay-${videoId}`);
-  const list = overlay.querySelector('.comment-list');
-  list.innerHTML = '';
-  const video = videos.find(v => v.id === videoId);
-
-  video.comments.forEach((c, i) => {
-    const div = document.createElement('div');
-    div.className='comment-item';
-    const timeString = new Date(c.timestamp).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' });
-
-    div.innerHTML = `
-      <div class="meta-row"><span class="username">Member</span><span class="timestamp">${timeString}</span></div>
-      <div>${c.text}</div>
-      ${c.uid === currentUserUid ? `<button onclick="deleteComment(${videoId}, ${i})">❌</button>` : ''}
-    `;
-    list.appendChild(div);
+    const vid = document.getElementById(`video-${video.id}`);
+    vid.addEventListener('click', ()=>togglePlay(vid));
   });
 
-  const input = document.getElementById(`comment-input-${videoId}`);
-  input.onkeydown = e => { if(e.key==='Enter') postComment(videoId); };
-}
-
-async function deleteComment(videoId, index) {
-  const video = videos.find(v => v.id === videoId);
-  if(video.comments[index].uid !== currentUserUid) return;
-  video.comments.splice(index, 1);
-  await db.collection('videos').doc(String(videoId)).update({comments: video.comments});
-  renderOverlayComments(videoId);
-  updateInteractionCounts();
-}
-
-function setupAutoPlay() {
-  const allVids = document.querySelectorAll('video');
-  const playCenteredVideo = () => {
+  const allVideos = document.querySelectorAll('video');
+  function playCenteredVideo() {
     const viewportCenter = window.innerHeight / 2;
     let closestVideo = null;
     let closestDistance = Infinity;
 
-    allVids.forEach(v => {
+    allVideos.forEach(v => {
       const rect = v.getBoundingClientRect();
       const videoCenter = rect.top + rect.height / 2;
       const distance = Math.abs(viewportCenter - videoCenter);
-      if(distance < closestDistance) {
+      if(distance < closestDistance){
         closestDistance = distance;
         closestVideo = v;
       }
     });
 
-    allVids.forEach(v => {
-      if(v === closestVideo) {
-          // Note: Most browsers will block v.play() with audio unless the user has interacted with the site first.
-          v.play().catch(() => {
-              v.muted = true; // Fallback to muted autoplay if audio is blocked
-              v.play();
-          });
-      } else {
-          v.pause();
-      }
+    allVideos.forEach(v => {
+      if(v === closestVideo) v.play().catch(()=>{});
+      else v.pause();
     });
-  };
+  }
 
   window.addEventListener('scroll', playCenteredVideo);
   window.addEventListener('resize', playCenteredVideo);
+  window.addEventListener('load', playCenteredVideo);
 }
 
 document.addEventListener('click', e => {
   videos.forEach(v => {
     const overlay = document.getElementById(`overlay-${v.id}`);
-    if (overlay && overlay.style.display === 'flex' && !overlay.contains(e.target) && !e.target.closest('.side-buttons button')) {
+    if (overlay.style.display === 'flex' && !overlay.contains(e.target) && !e.target.closest('.side-buttons button')) {
+      overlay.style.display = 'none';
+    }
+  });
+});
+document.addEventListener('touchstart', e => {
+  videos.forEach(v => {
+    const overlay = document.getElementById(`overlay-${v.id}`);
+    if (overlay.style.display === 'flex' && !overlay.contains(e.target) && !e.target.closest('.side-buttons button')) {
       overlay.style.display = 'none';
     }
   });
