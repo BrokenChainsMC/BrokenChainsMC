@@ -107,19 +107,25 @@ nav a {
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-analytics.js";
 import { getFirestore, doc, setDoc, updateDoc, onSnapshot, arrayUnion, arrayRemove, increment, getDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 
+// New Firebase project config
 const firebaseConfig = {
-    apiKey: "AIzaSyCgaFQ7EZiKB1LQYbtxwWJ8FkwfRd5iI60",
-    authDomain: "brokenchainsmc-f14e5.firebaseapp.com",
-    projectId: "brokenchainsmc-f14e5",
-    storageBucket: "brokenchainsmc-f14e5.appspot.com",
-    messagingSenderId: "30166542756",
-    appId: "1:30166542756:web:c97ed37f341161d1c5f931"
+  apiKey: "AIzaSyAqflQaoO1I8eOI9Vu32jYCYW0mpEaR8R4",
+  authDomain: "brokenchainsmcphotos.firebaseapp.com",
+  projectId: "brokenchainsmcphotos",
+  storageBucket: "brokenchainsmcphotos.firebasestorage.app",
+  messagingSenderId: "530813967898",
+  appId: "1:530813967898:web:b03b2fa700a01e2f463ba3",
+  measurementId: "G-1K4TD2V2E2"
 };
 
+// Initialize Firebase + Analytics
 const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+
 const db = getFirestore(app);
 const auth = getAuth(app);
 let currentUser = null;
@@ -138,7 +144,6 @@ const photos = [
     { id: "p11", url: "images/i7.jpg" },
     { id: "p12", url: "images/i8.jpg" }
 ];
-
 function chunkArray(array, size) {
     const result = [];
     for (let i = 0; i < array.length; i += size) result.push(array.slice(i, i + size));
