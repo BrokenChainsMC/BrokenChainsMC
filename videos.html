@@ -69,7 +69,6 @@ nav a {
 nav a:hover {
   color: #ffffff;
 }
-/* ===== END HEADER ===== */
 
 #feed {
   max-width:500px;
@@ -96,6 +95,11 @@ nav a:hover {
   height:42px;
   border-radius:50%;
   border:2px solid darkred;
+}
+
+.video-wrapper {
+  position: relative;
+  width: 100%;
 }
 
 video {
@@ -148,7 +152,7 @@ video {
   display:flex; 
   flex-direction:column; 
   gap:20px; 
-  z-index:20; 
+  z-index: 100; 
 }
 
 .side-buttons button { 
@@ -161,6 +165,15 @@ video {
   display:flex; 
   flex-direction:column; 
   align-items:center; 
+  transition: transform 0.1s;
+}
+
+.side-buttons button:active {
+  transform: scale(0.9);
+}
+
+.side-buttons button.liked {
+  color: #ff4444; 
 }
 
 .side-buttons span { 
@@ -170,7 +183,8 @@ video {
   text-shadow:0 0 5px #000; 
 }
 
-/* comment styles unchanged */
+/* Comment Styles */
+/* Z-Index 200 ensures it is ON TOP of the side buttons (which are 100) */
 .comment-overlay {
   position:absolute;
   left:0;
@@ -178,11 +192,23 @@ video {
   height:70%;
   bottom:0;
   background:#fff;
-  z-index:50;
-  display:none;
+  z-index:200; 
+  display:none; 
   flex-direction:column;
   overflow:hidden;
   border-radius:10px 10px 0 0;
+  box-shadow: 0 -5px 15px rgba(0,0,0,0.5);
+}
+
+.click-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 30%; 
+  z-index: 49; 
+  display: none;
+  background: transparent;
 }
 
 .comment-list {
@@ -217,11 +243,7 @@ video {
   cursor:pointer; 
   align-self:flex-end; 
   font-size:14px; 
-  opacity:0; 
-  transition: opacity 0.2s; 
 }
-
-.comment-item:hover button { opacity:1; }
 
 .comment-input {
   display:flex;
@@ -244,6 +266,11 @@ video {
   color:white;
   cursor:pointer;
 }
+
+.comment-input button:disabled {
+  background: #999;
+  cursor: not-allowed;
+}
 </style>
 </head>
 
@@ -260,14 +287,11 @@ video {
 
 <div id="feed"></div>
 
-<!-- Firebase SDKs -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <script>
-const adminUser = "admin";
-
 // Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyCgaFQ7EZiKB1LQYbtxwWJ8FkwfRd5iI60",
@@ -278,84 +302,236 @@ const firebaseConfig = {
   appId: "1:30166542756:web:9797ba4dab1e7689c5f931"
 };
 
+// Initialize
 firebase.initializeApp(firebaseConfig);
-firebase.auth().signInAnonymously();
 const db = firebase.firestore();
+const auth = firebase.auth();
 
-const videos = [
-  { id:1, video_url:"videos/v1.mp4", likes:0, comments:[] },
-  { id:2, video_url:"videos/v2.mp4", likes:0, comments:[] },
-  { id:3, video_url:"videos/v3.mp4", likes:0, comments:[] },
-  { id:4, video_url:"videos/v4.mp4", likes:0, comments:[] },
-  { id:5, video_url:"videos/v5.mp4", likes:0, comments:[] },
-  { id:6, video_url:"videos/v6.mp4", likes:0, comments:[] },
-  { id:7, video_url:"videos/v7.mp4", likes:0, comments:[] },
-];
+let currentUser = null;
 
-// Load data from Firestore
-videos.forEach(async v => {
-  const doc = await db.collection('videos').doc(String(v.id)).get();
-  if(doc.exists){
-    const data = doc.data();
-    v.likes = data.likes || 0;
-    v.comments = data.comments || [];
-  } else {
-    db.collection('videos').doc(String(v.id)).set({likes:0, comments:[]});
+// Handle Auth State
+auth.signInAnonymously().catch(e => console.error("Auth Error:", e));
+
+auth.onAuthStateChanged((user) => {
+  if (user) {
+    currentUser = user;
+    console.log("Auth ready:", currentUser.uid);
   }
 });
 
-function togglePanel(id,type){
-  const bio = document.getElementById(`bio-${id}`);
-  const overlay = document.getElementById(`overlay-${id}`);
-  if(type==='bio'){
-    bio.style.maxHeight = bio.style.maxHeight==='0px'||bio.style.maxHeight==='' ? bio.scrollHeight+'px' : '0';
+// Using Strings for IDs to prevent number/string mismatch issues
+const videos = [
+  { id:"1", video_url:"videos/v1.mp4", likes:0, comments:[] },
+  { id:"2", video_url:"videos/v2.mp4", likes:0, comments:[] },
+  { id:"3", video_url:"videos/v3.mp4", likes:0, comments:[] },
+  { id:"4", video_url:"videos/v4.mp4", likes:0, comments:[] },
+  { id:"5", video_url:"videos/v5.mp4", likes:0, comments:[] },
+  { id:"6", video_url:"videos/v6.mp4", likes:0, comments:[] },
+  { id:"7", video_url:"videos/v7.mp4", likes:0, comments:[] },
+];
+
+// Ensure each video doc exists and attach realtime listeners
+videos.forEach(async v => {
+  try {
+    const docRef = db.collection('videos').doc(v.id);
+    const doc = await docRef.get();
+    if(!doc.exists){
+      await docRef.set({likes:0, likedBy:[], comments:[]});
+    }
+    // attach snapshot listener for authoritative updates
+    attachVideoSnapshotListener(v.id);
+  } catch (err) {
+    console.error("Database Error:", err);
   }
-  if(type==='comments'){
-    renderOverlay(id);
-    overlay.style.display = 'flex';
-  }
+});
+
+/* -------------------------
+   Like helpers (local state)
+   ------------------------- */
+function getLikedVideos() {
+    try {
+        const stored = JSON.parse(localStorage.getItem('brokenchains_likes') || '[]');
+        return Array.isArray(stored) ? stored.map(id => String(id)) : [];
+    } catch (e) {
+        return [];
+    }
 }
 
+function setLikedVideos(arr) {
+    try { localStorage.setItem('brokenchains_likes', JSON.stringify(arr)); } catch(e){}
+}
+
+function updateLikeButtonUI(id) {
+    const strId = String(id);
+    const likedVideos = getLikedVideos();
+    const container = document.querySelector(`.side-buttons[data-video="${strId}"]`);
+    if(!container) return;
+    const btn = container.querySelector('button:first-child');
+    const span = btn.querySelector('span');
+    const video = videos.find(v=>v.id===strId);
+    if(span && video) span.textContent = video.likes;
+    if(likedVideos.includes(strId)) btn.classList.add('liked'); else btn.classList.remove('liked');
+}
+
+/* -------------------------
+   Listen for Firestore changes
+   authoritative counts come from here
+   ------------------------- */
+function attachVideoSnapshotListener(id){
+  const strId = String(id);
+  const ref = db.collection('videos').doc(strId);
+
+  ref.onSnapshot(doc => {
+    if(!doc.exists) return;
+    const data = doc.data();
+    const v = videos.find(x => x.id === strId);
+    if(!v) return;
+    // Prefer authoritative likedBy length if present
+    if(Array.isArray(data.likedBy)) {
+      v.likes = data.likedBy.length;
+    } else if (typeof data.likes === 'number') {
+      v.likes = data.likes;
+    } else {
+      v.likes = v.likes || 0;
+    }
+    v.comments = Array.isArray(data.comments) ? data.comments : (v.comments || []);
+    // update UI after authoritative change
+    updateLikeButtonUI(strId);
+    updateCommentCount(strId);
+    console.log(`snapshot ${strId}: likes=${v.likes}, comments=${v.comments.length}`);
+  });
+}
+
+/* -------------------------
+   Robust like/unlike using arrayUnion/arrayRemove + increment
+   - fallback to sign-in if needed
+   - optimistic UI, revert on failure
+   ------------------------- */
 async function likeVideo(id){
-  const video = videos.find(v=>v.id===id);
-  if(!video) return;
+  const strId = String(id);
+  // ensure we have an auth user; if not, try to sign in now
+  if(!currentUser){
+    try {
+      await auth.signInAnonymously();
+      currentUser = auth.currentUser;
+    } catch(e){
+      console.error("Auth failed on like attempt", e);
+      alert("Unable to like right now — auth failed.");
+      return;
+    }
+  }
+  const uid = currentUser.uid;
+  const ref = db.collection('videos').doc(strId);
 
-  video.likes++;
-  await db.collection('videos').doc(String(id)).update({likes: video.likes});
+  const localLiked = getLikedVideos();
+  const wasLikedLocally = localLiked.includes(strId);
 
-  // Update only the like count visually
-  const likeSpan = document.querySelector(`.side-buttons[data-video="${id}"] button:first-child span`);
-  if(likeSpan) likeSpan.textContent = video.likes;
+  // optimistic toggle local state & UI
+  let newLocal;
+  if(wasLikedLocally){
+    newLocal = localLiked.filter(x=>x!==strId);
+  } else {
+    newLocal = [...localLiked, strId];
+  }
+  setLikedVideos(newLocal);
+  updateLikeButtonUI(strId);
+
+  // build server update payload
+  try {
+    if(wasLikedLocally){
+      // UNLIKE
+      await ref.set({
+        likedBy: firebase.firestore.FieldValue.arrayRemove(uid),
+        likes: firebase.firestore.FieldValue.increment(-1)
+      }, { merge: true });
+    } else {
+      // LIKE
+      await ref.set({
+        likedBy: firebase.firestore.FieldValue.arrayUnion(uid),
+        likes: firebase.firestore.FieldValue.increment(1)
+      }, { merge: true });
+    }
+    // success -> snapshot listener will update authoritative count and we keep localStorage
+    console.log(`likeVideo: server updated ${strId} (wasLikedLocally=${wasLikedLocally})`);
+  } catch (e) {
+    console.error("likeVideo server update failed", e);
+    // revert local optimistic change
+    try {
+      const snap = await ref.get();
+      if(snap.exists && Array.isArray(snap.data().likedBy)){
+        const serverHas = snap.data().likedBy.map(String).includes(uid);
+        // align local to server
+        let aligned = getLikedVideos();
+        if(serverHas && !aligned.includes(strId)) aligned.push(strId);
+        if(!serverHas) aligned = aligned.filter(x=>x!==strId);
+        setLikedVideos(aligned);
+      } else {
+        // if server data missing, remove local like for safety
+        setLikedVideos(getLikedVideos().filter(x=>x!==strId));
+      }
+    } catch(_) {
+      setLikedVideos(getLikedVideos().filter(x=>x!==strId));
+    }
+    updateLikeButtonUI(strId);
+  }
 }
 
+/* -------------------------
+   Comment / UI functions (unchanged behavior)
+   ------------------------- */
 async function postComment(id){
-  const input = document.getElementById(`comment-input-${id}`);
-  if(!input.value) return;
-  const video = videos.find(v=>v.id===id);
+  const strId = String(id);
+  if (!currentUser) {
+      alert("Still connecting to network... please try again in a moment.");
+      return;
+  }
 
-  video.comments.push({text: input.value, user: adminUser});
-  await db.collection('videos').doc(String(id)).update({comments: video.comments});
+  const input = document.getElementById(`comment-input-${strId}`);
+  const text = input.value.trim();
+  if(!text) return;
 
-  input.value = "";
-  renderOverlay(id);
-  updateCommentCount(id);
+  const video = videos.find(v=>v.id===strId);
+
+  const newComment = {
+    text: text,
+    uid: currentUser.uid,
+    timestamp: Date.now()
+  };
+
+  try {
+      video.comments.push(newComment);
+      input.value = "";
+
+      await db.collection('videos').doc(strId).update({comments: video.comments});
+
+      renderOverlay(strId);
+      updateCommentCount(strId);
+  } catch (e) {
+      console.error("Post Error", e);
+  }
 }
 
 function updateCommentCount(id){
-  const btn = document.querySelector(`.side-buttons[data-video="${id}"] button:nth-child(2) span`);
-  const video = videos.find(v=>v.id===id);
-  btn.textContent = video.comments.length;
+  const strId = String(id);
+  const btn = document.querySelector(`.side-buttons[data-video="${strId}"] button:nth-child(2) span`);
+  const video = videos.find(v=>v.id===strId);
+  if(btn && video) btn.textContent = video.comments.length;
 }
 
-async function deleteComment(videoId,index){
-  const video = videos.find(v=>v.id===videoId);
+async function deleteComment(videoId, index){
+  const strId = String(videoId);
+  const video = videos.find(v=>v.id===strId);
   if(!video) return;
 
-  video.comments.splice(index,1);
-  await db.collection('videos').doc(String(videoId)).update({comments: video.comments});
-
-  renderOverlay(videoId);
-  updateCommentCount(videoId);
+  try {
+      if(!video.comments[index] || video.comments[index].uid !== currentUser.uid) return;
+      video.comments.splice(index,1);
+      await db.collection('videos').doc(strId).update({comments: video.comments});
+      renderOverlay(strId);
+      updateCommentCount(strId);
+  } catch(e) {
+      console.error("Delete Error", e);
+  }
 }
 
 function togglePlay(video){
@@ -364,31 +540,62 @@ function togglePlay(video){
 }
 
 function renderOverlay(videoId){
-  const overlay = document.getElementById(`overlay-${videoId}`);
+  const strId = String(videoId);
+  const overlay = document.getElementById(`overlay-${strId}`);
   const list = overlay.querySelector('.comment-list');
   list.innerHTML = '';
-  const video = videos.find(v=>v.id===videoId);
+  const video = videos.find(v=>v.id===strId);
+
+  if(video.comments.length === 0) {
+      list.innerHTML = '<div style="color:#aaa; text-align:center; padding:20px;">No comments yet.</div>';
+  }
 
   video.comments.forEach((c,i)=>{
     const div = document.createElement('div');
     div.className='comment-item';
+
+    let deleteBtn = '';
+    if (currentUser && c.uid === currentUser.uid) {
+        deleteBtn = `<button onclick="deleteComment('${strId}', ${i})">❌</button>`;
+    }
+
     div.innerHTML = `
-      <div class="username">Anonymous</div>
-      ${c.text}
-      ${c.user===adminUser?`<button data-video="${videoId}" data-index="${i}">❌</button>`:''}
+      <div class="username">Anonymous Rider</div>
+      <div>${c.text}</div>
+      ${deleteBtn}
     `;
     list.appendChild(div);
   });
+}
 
-  overlay.querySelectorAll('.comment-item button').forEach(btn=>{
-    btn.addEventListener('click', e=>{
-      e.stopPropagation();
-      deleteComment(Number(btn.dataset.video), Number(btn.dataset.index));
-    });
-  });
+function togglePanel(id, type){
+  const strId = String(id);
+  const bio = document.getElementById(`bio-${strId}`);
+  const overlay = document.getElementById(`overlay-${strId}`);
+  const mask = document.getElementById(`click-mask-${strId}`);
 
-  const input = document.getElementById(`comment-input-${videoId}`);
-  input.onkeydown = e => { if(e.key==='Enter') postComment(videoId); };
+  if(type === 'bio'){
+    bio.style.maxHeight = bio.style.maxHeight==='0px'||bio.style.maxHeight==='' ? bio.scrollHeight+'px' : '0';
+  }
+
+  if(type === 'comments'){
+    const isHidden = overlay.style.display === 'none' || overlay.style.display === '';
+    if (isHidden) {
+      renderOverlay(strId);
+      overlay.style.display = 'flex';
+      mask.style.display = 'block';
+    } else {
+      closeComments(strId);
+    }
+  }
+}
+
+function closeComments(id) {
+    const strId = String(id);
+    const overlay = document.getElementById(`overlay-${strId}`);
+    const mask = document.getElementById(`click-mask-${strId}`);
+    if(overlay) overlay.style.display = 'none';
+    if(mask) mask.style.display = 'none';
 }
 
 function renderFeed(){
@@ -398,30 +605,33 @@ function renderFeed(){
   videos.forEach(video=>{
     const div = document.createElement('div');
     div.className='video-card';
+
     div.innerHTML = `
       <div class="poster-header">
         <img src="images/logo.png">
         <div><strong style="color:white">Broken Chains MC</strong></div>
       </div>
-      <div class="video-wrapper" style="position:relative;">
-        <video id="video-${video.id}" src="${video.video_url}" autoplay playsinline></video>
+      <div class="video-wrapper">
+        <video id="video-${video.id}" src="${video.video_url}" autoplay playsinline loop></video>
+
+        <div id="click-mask-${video.id}" class="click-mask" onclick="closeComments('${video.id}')"></div>
 
         <div class="side-buttons" data-video="${video.id}">
-          <button onclick="likeVideo(${video.id})">🔥<span>${video.likes}</span></button>
-          <button onclick="togglePanel(${video.id},'comments')">💬<span>${video.comments.length}</span></button>
+          <button onclick="likeVideo('${video.id}')">🔥<span>${video.likes}</span></button>
+          <button onclick="togglePanel('${video.id}','comments')">💬<span>${video.comments.length}</span></button>
         </div>
 
         <div class="comment-overlay" id="overlay-${video.id}">
           <div class="comment-list"></div>
           <div class="comment-input">
-            <input id="comment-input-${video.id}" placeholder="Add a comment">
-            <button onclick="postComment(${video.id})">Post</button>
+            <input id="comment-input-${video.id}" placeholder="Add a comment..." onkeydown="if(event.key==='Enter') postComment('${video.id}')">
+            <button onclick="postComment('${video.id}')">Post</button>
           </div>
         </div>
       </div>
 
       <div class="controls">
-        <button class="bio-toggle" onclick="togglePanel(${video.id},'bio')">⛓️ Tag List</button>
+        <button class="bio-toggle" onclick="togglePanel('${video.id}','bio')">⛓️ Tag List</button>
         <div class="bio" id="bio-${video.id}">
           <div class="bio-content">
 ⫘⫘⫘⫘⫘⫘⫘
@@ -432,33 +642,6 @@ function renderFeed(){
 
 𝕋𝕀𝕂 𝕋𝕆𝕂
 46brokenchainsmc
-
-⫘⫘⫘⫘⫘⫘⫘
-
-𝐏𝐫𝐞𝐬𝐢𝐝𝐞𝐧𝐭 
-@chainedxdisciple
-𝐕𝐢𝐜𝐞 𝐏𝐫𝐞𝐬𝐢𝐝𝐞𝐧𝐭
-@chainedxobey
-𝐒𝐞𝐫𝐠𝐞𝐚𝐧𝐭-𝐚𝐭-𝐀𝐫𝐦𝐬
-@chainedxcriptic
-𝐑𝐨𝐚𝐝 𝐂𝐚𝐩𝐭𝐚𝐢𝐧
-Open
-𝐓𝐫𝐞𝐚𝐬𝐮𝐫𝐞𝐫 
-Open
-𝐒𝐞𝐜𝐫𝐞𝐭𝐚𝐫𝐲
-@chainedxrose
-𝐄𝐧𝐟𝐨𝐫𝐜𝐞𝐫 
-Open
-𝐓𝐚𝐢𝐥 𝐆𝐮𝐧𝐧𝐞𝐫
-Open
-⫘⫘⫘⫘⫘⫘⫘
-
-𝐅𝐮𝐥𝐥 𝐏𝐚𝐭𝐜𝐡 
-N/A
-⫘⫘⫘⫘⫘⫘⫘
-
- 𝐏𝐫𝐨𝐬𝐩𝐞𝐜𝐭 
-@chainedxhera
 ⫘⫘⫘⫘⫘⫘⫘
           </div>
         </div>
@@ -466,8 +649,12 @@ N/A
     `;
     feed.appendChild(div);
 
+    // ensure UI reflects localStorage like class & DB counts
+    updateLikeButtonUI(video.id);
+    updateCommentCount(video.id);
+
     const vid = document.getElementById(`video-${video.id}`);
-    vid.addEventListener('click', ()=>togglePlay(vid));
+    vid.addEventListener('click', ()=> togglePlay(vid));
   });
 
   const allVideos = document.querySelectorAll('video');
@@ -496,23 +683,6 @@ N/A
   window.addEventListener('resize', playCenteredVideo);
   window.addEventListener('load', playCenteredVideo);
 }
-
-document.addEventListener('click', e => {
-  videos.forEach(v => {
-    const overlay = document.getElementById(`overlay-${v.id}`);
-    if (overlay.style.display === 'flex' && !overlay.contains(e.target) && !e.target.closest('.side-buttons button')) {
-      overlay.style.display = 'none';
-    }
-  });
-});
-document.addEventListener('touchstart', e => {
-  videos.forEach(v => {
-    const overlay = document.getElementById(`overlay-${v.id}`);
-    if (overlay.style.display === 'flex' && !overlay.contains(e.target) && !e.target.closest('.side-buttons button')) {
-      overlay.style.display = 'none';
-    }
-  });
-});
 
 renderFeed();
 </script>
