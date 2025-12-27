@@ -196,7 +196,8 @@ function renderFeed() {
                 </div>
             </div>
             <button class="bio-toggle" id="btog-${groupId}">⛓️ Hierarchy & Tags</button>
-            <div class="bio" id="bio-${groupId}"><div class="bio-content">⫘⫘⫘⫘⫘⫘⫘
+            <div class="bio" id="bio-${groupId}"><div class="bio-content">
+⫘⫘⫘⫘⫘⫘⫘
 𝟒𝟔𝐌𝐂  𝐁𝐑𝐎𝐊𝐄𝐍 𝐂𝐇𝐀𝐈𝐍𝐒 𝐇𝐄𝐈𝐑𝐀𝐂𝐇𝐘
 𝐅𝐎𝐑 𝐌𝐎𝐑𝐄 𝐂𝐎𝐍𝐓𝐄𝐍𝐓 𝐅𝐎𝐋𝐋𝐎𝐖
 
@@ -329,7 +330,7 @@ async function initFeed(groups) {
             list.innerHTML = '';
             if(data.comments) {
                 data.comments.forEach(c => {
-                    list.innerHTML += `<div class="comment-item"><span class="comment-user">Prospect</span>${c.text}</div>`;
+                    list.innerHTML += `<div class="comment-item"><span class="comment-user">anonymous</span>${c.text}</div>`;
                 });
                 list.scrollTop = list.scrollHeight;
             }
@@ -349,5 +350,6 @@ async function initFeed(groups) {
 </script>
 </body>
 </html>
+
 
 
