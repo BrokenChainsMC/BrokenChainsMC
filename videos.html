@@ -43,16 +43,21 @@ header {
   padding: 30px 20px 20px;
   text-align: center;
   border-bottom: 2px solid #b30000;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
 }
 
+
 header h1 {
-  margin: 0;
-  letter-spacing: 4px;
   font-family: 'Metal Mania', cursive;
-  font-size: 48px;
-  text-transform: uppercase;
+  font-size: clamp(24px, 8vw, 48px); /* Added clamp for responsive scaling */
+  letter-spacing: 2px;               /* slightly reduced spacing for small screens */
   color: #ffffff;
+  text-transform: uppercase;
+  margin: 0;
 }
+
 
 nav {
   display: flex;
@@ -716,4 +721,3 @@ renderFeed();
 </script>
 </body>
 </html>
-
