@@ -131,7 +131,7 @@ const auth = getAuth(app);
 let currentUser = null;
 
 const photos = [
-    { id: "p1", url: "images/i35.webp" },
+  { id: "p1", url: "images/i35.webp", solo: true },
     { id: "p2", url: "images/disciple.jpg" },
     { id: "p3", url: "images/criptic.jpg" },
     { id: "p4", url: "images/obey.jpg" },
@@ -364,6 +364,7 @@ async function initFeed(groups) {
 </script>
 </body>
 </html>
+
 
 
 
