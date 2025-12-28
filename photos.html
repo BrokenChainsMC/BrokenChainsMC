@@ -181,82 +181,129 @@ function chunkArray(array, size) {
 function renderFeed() {
     const feed = document.getElementById('feed');
     const soloPhoto = photos.find(p => p.solo);
-const groupedPhotos = photos.filter(p => !p.solo);
-const groups = chunkArray(groupedPhotos, 4);
-if (soloPhoto) {
-  const soloId = `solo_${soloPhoto.id}`;
-  const card = document.createElement('div');
-  card.className = 'carousel-card';
+    const groupedPhotos = photos.filter(p => !p.solo);
+    const groups = chunkArray(groupedPhotos, 4);
 
-  card.innerHTML = `
-    <div class="card-header">
-      <img src="images/logo.png" onerror="this.style.display='none'">
-      <strong>Broken Chains MC</strong>
-    </div>
+    if (soloPhoto) {
+      const soloId = `solo_${soloPhoto.id}`;
+      const card = document.createElement('div');
+      card.className = 'carousel-card';
+    
+      card.innerHTML = `
+        <div class="card-header">
+          <img src="images/logo.png" onerror="this.style.display='none'">
+          <strong>Broken Chains MC</strong>
+        </div>
+    
+        <div class="carousel-container">
+          <div class="carousel-item">
+            <img src="${soloPhoto.url}" class="carousel-photo">
+          </div>
+        </div>
+    
+        <div class="card-actions">
+          <button class="action-btn" id="lbtn-${soloId}">
+            🔥 <span id="lcnt-${soloId}">0</span>
+          </button>
+          <button class="action-btn" id="cbtn-${soloId}">
+            💬 <span id="ccnt-${soloId}">0</span>
+          </button>
+        </div>
+    
+        <div class="comments-section" id="csec-${soloId}">
+          <div class="comment-list" id="clist-${soloId}"></div>
+          <div class="comment-input-area">
+            <input type="text" id="cinp-${soloId}" placeholder="Add a comment...">
+            <button id="cpost-${soloId}">Post</button>
+          </div>
+        </div>
 
-    <div class="carousel-container">
-      <div class="carousel-item">
-        <img src="${soloPhoto.url}" class="carousel-photo">
-      </div>
-    </div>
+        <button class="bio-toggle" id="btog-${soloId}">⛓️ Tag List</button>
+        <div class="bio" id="bio-${soloId}"><div class="bio-content">
+⫘⫘⫘⫘⫘⫘⫘
+𝟒𝟔𝐌𝐂  𝐁𝐑𝐎𝐊𝐄𝐍 𝐂𝐇𝐀𝐈𝐍𝐒 𝐇𝐄𝐈𝐑𝐀𝐂𝐇𝐘
+𝐅𝐎𝐑 𝐌𝐎𝐑𝐄 𝐂𝐎𝐍𝐓𝐄𝐍𝐓 𝐅𝐎𝐋𝐋𝐎𝐖
 
-    <div class="card-actions">
-      <button class="action-btn" id="lbtn-${soloId}">
-        🔥 <span id="lcnt-${soloId}">0</span>
-      </button>
-      <button class="action-btn" id="cbtn-${soloId}">
-        💬 <span id="ccnt-${soloId}">0</span>
-      </button>
-    </div>
+𝕀ℕ𝕊𝕋𝔸𝔾ℝ𝔸𝕄 @46broken_chains_mc
 
-    <div class="comments-section" id="csec-${soloId}">
-      <div class="comment-list" id="clist-${soloId}"></div>
-      <div class="comment-input-area">
-        <input type="text" id="cinp-${soloId}" placeholder="Add a comment...">
-        <button id="cpost-${soloId}">Post</button>
-      </div>
-    </div>
-  `;
+𝕋𝕀𝕂 𝕋𝕆𝕂
+46brokenchainsmc
 
-  feed.appendChild(card);
+⫘⫘⫘⫘⫘⫘⫘
 
-  document.getElementById(`lbtn-${soloId}`).onclick = () => handleLike(soloId);
-  document.getElementById(`cbtn-${soloId}`).onclick = () =>
-    document.getElementById(`csec-${soloId}`).classList.toggle('open');
-  document.getElementById(`cpost-${soloId}`).onclick = () => postComment(soloId);
-}
+𝐏𝐫𝐞𝐬𝐢𝐝𝐞𝐧𝐭 
+@chainedxdisciple
+𝐕𝐢𝐜𝐞 𝐏𝐫𝐞𝐬𝐢𝐝𝐞𝐧𝐭
+@chainedxobey
+𝐒𝐞𝐫𝐠𝐞𝐚𝐧𝐭-𝐚𝐭-𝐀𝐫𝐦𝐬
+@chainedxcriptic
+𝐑𝐨𝐚𝐝 𝐂𝐚𝐩𝐭𝐚𝐢𝐧
+Open
+𝐓𝐫𝐞𝐚𝐬𝐮𝐫𝐞𝐫 
+Open
+𝐒𝐞𝐜𝐫𝐞𝐭𝐚𝐫𝐲
+@chainedxrose
+𝐄𝐧𝐟𝐨𝐫𝐜𝐞𝐫 
+Open
+𝐓𝐚𝐢𝐥 𝐆𝐮𝐧𝐧𝐞𝐫
+Open
+⫘⫘⫘⫘⫘⫘⫘
 
+𝐅𝐮𝐥𝐥 𝐏𝐚𝐭𝐜𝐡 
+N/A
+⫘⫘⫘⫘⫘⫘⫘
 
-
-    groups.forEach((group, gIdx) => {
-        const groupId = `group_${gIdx}`;
-        const card = document.createElement('div');
-        card.className = 'carousel-card';
-        
-        let carouselHtml = '';
-        let dotsHtml = '';
-        group.forEach((p, pIdx) => {
-            carouselHtml += `<div class="carousel-item"><img src="${p.url}" class="carousel-photo" onerror="this.src='https://via.placeholder.com/400x280'"></div>`;
-            dotsHtml += `<div class="dot ${pIdx === 0 ? 'active' : ''}" id="dot-${groupId}-${pIdx}"></div>`;
-        });
-
-        card.innerHTML = `
-            <div class="card-header"><img src="images/logo.png" onerror="this.style.display='none'"><strong>Broken Chains MC</strong></div>
-            <div class="carousel-container" id="scroll-${groupId}">${carouselHtml}</div>
-            <div class="dots-container">${dotsHtml}</div>
-            <div class="card-actions">
-                <button class="action-btn" id="lbtn-${groupId}">🔥 <span id="lcnt-${groupId}">0</span></button>
-                <button class="action-btn" id="cbtn-${groupId}">💬 <span id="ccnt-${groupId}">0</span></button>
-            </div>
-            <div class="comments-section" id="csec-${groupId}">
-                <div class="comment-list" id="clist-${groupId}"></div>
-                <div class="comment-input-area">
-                    <input type="text" id="cinp-${groupId}" placeholder="Add a comment...">
-                    <button id="cpost-${groupId}">Post</button>
+ 𝐏𝐫𝐨𝐬𝐩𝐞𝐜𝐭 
+@chainedxhera
+@smiley.mf
+⫘⫘⫘⫘⫘⫘⫘
+</div></div>
+      `;
+    
+      feed.appendChild(card);
+    
+      // wire up solo controls (likes, comments, taglist)
+      document.getElementById(`lbtn-${soloId}`).onclick = () => handleLike(soloId);
+      document.getElementById(`cbtn-${soloId}`).onclick = () =>
+        document.getElementById(`csec-${soloId}`).classList.toggle('open');
+      document.getElementById(`cpost-${soloId}`).onclick = () => postComment(soloId);
+      document.getElementById(`btog-${soloId}`).onclick = () => {
+        const bio = document.getElementById(`bio-${soloId}`);
+        bio.style.maxHeight = (bio.style.maxHeight === '0px' || !bio.style.maxHeight) ? bio.scrollHeight + 'px' : '0px';
+      };
+    }
+    
+    
+    
+        groups.forEach((group, gIdx) => {
+            const groupId = `group_${gIdx}`;
+            const card = document.createElement('div');
+            card.className = 'carousel-card';
+            
+            let carouselHtml = '';
+            let dotsHtml = '';
+            group.forEach((p, pIdx) => {
+                carouselHtml += `<div class="carousel-item"><img src="${p.url}" class="carousel-photo" onerror="this.src='https://via.placeholder.com/400x280'"></div>`;
+                dotsHtml += `<div class="dot ${pIdx === 0 ? 'active' : ''}" id="dot-${groupId}-${pIdx}"></div>`;
+            });
+    
+            card.innerHTML = `
+                <div class="card-header"><img src="images/logo.png" onerror="this.style.display='none'"><strong>Broken Chains MC</strong></div>
+                <div class="carousel-container" id="scroll-${groupId}">${carouselHtml}</div>
+                <div class="dots-container">${dotsHtml}</div>
+                <div class="card-actions">
+                    <button class="action-btn" id="lbtn-${groupId}">🔥 <span id="lcnt-${groupId}">0</span></button>
+                    <button class="action-btn" id="cbtn-${groupId}">💬 <span id="ccnt-${groupId}">0</span></button>
                 </div>
-            </div>
-            <button class="bio-toggle" id="btog-${groupId}">⛓️ Tag List</button>
-            <div class="bio" id="bio-${groupId}"><div class="bio-content">
+                <div class="comments-section" id="csec-${groupId}">
+                    <div class="comment-list" id="clist-${groupId}"></div>
+                    <div class="comment-input-area">
+                        <input type="text" id="cinp-${groupId}" placeholder="Add a comment...">
+                        <button id="cpost-${groupId}">Post</button>
+                    </div>
+                </div>
+                <button class="bio-toggle" id="btog-${groupId}">⛓️ Tag List</button>
+                <div class="bio" id="bio-${groupId}"><div class="bio-content">
 ⫘⫘⫘⫘⫘⫘⫘
 𝟒𝟔𝐌𝐂  𝐁𝐑𝐎𝐊𝐄𝐍 𝐂𝐇𝐀𝐈𝐍𝐒 𝐇𝐄𝐈𝐑𝐀𝐂𝐇𝐘
 𝐅𝐎𝐑 𝐌𝐎𝐑𝐄 𝐂𝐎𝐍𝐓𝐄𝐍𝐓 𝐅𝐎𝐋𝐋𝐎𝐖
@@ -296,117 +343,150 @@ N/A
 ⫘⫘⫘⫘⫘⫘⫘
 </div>
 </div>
-        `;
-        feed.appendChild(card);
-
-        const scrollBox = document.getElementById(`scroll-${groupId}`);
-        scrollBox.addEventListener('scroll', () => {
-            const index = Math.round(scrollBox.scrollLeft / scrollBox.offsetWidth);
-            group.forEach((_, pIdx) => {
-                const d = document.getElementById(`dot-${groupId}-${pIdx}`);
-                if(d) d.classList.toggle('active', pIdx === index);
-            });
-        });
-
-        document.getElementById(`lbtn-${groupId}`).onclick = () => handleLike(groupId);
-        document.getElementById(`cbtn-${groupId}`).onclick = () => {
-            document.getElementById(`csec-${groupId}`).classList.toggle('open');
-        };
-        document.getElementById(`btog-${groupId}`).onclick = () => {
-            const bio = document.getElementById(`bio-${groupId}`);
-            bio.style.maxHeight = (bio.style.maxHeight === '0px' || !bio.style.maxHeight) ? bio.scrollHeight + 'px' : '0px';
-        };
-        document.getElementById(`cpost-${groupId}`).onclick = () => postComment(groupId);
-    });
-}
-
-// Firebase helpers
-async function initUser() {
-    const userCred = await signInAnonymously(auth);
-    currentUser = userCred.user;
-    console.log("User ID:", currentUser.uid);
-}
-
-async function ensurePostDoc(groupId) {
-    const postRef = doc(db, "posts", groupId);
-    const snap = await getDoc(postRef);
-    if (!snap.exists()) {
-        await setDoc(postRef, { likes: 0, likedBy: [], comments: [] });
-    }
-    return postRef;
-}
-
-async function handleLike(groupId) {
-    if (!currentUser) return alert("Signing in...");
-    const postRef = await ensurePostDoc(groupId);
-    const liked = getLocalLikes().includes(groupId);
-    toggleLocalLike(groupId);
-    updateLikeButtonStyle(groupId);
-
-    try {
-        await updateDoc(postRef, {
-            likedBy: liked ? arrayRemove(currentUser.uid) : arrayUnion(currentUser.uid),
-            likes: liked ? increment(-1) : increment(1)
-        });
-    } catch(e){ console.error(e); }
-}
-
-async function postComment(groupId) {
-    if (!currentUser) return alert("Signing in...");
-    const input = document.getElementById(`cinp-${groupId}`);
-    if (!input.value.trim()) return;
-
-    const postRef = await ensurePostDoc(groupId);
-    try {
-        await updateDoc(postRef, {
-            comments: arrayUnion({ text: input.value, uid: currentUser.uid, time: Date.now() })
-        });
-        input.value = '';
-    } catch(e){ console.error(e); }
-}
-
-function getLocalLikes() { return JSON.parse(localStorage.getItem('bc_likes') || '[]'); }
-function toggleLocalLike(id) {
-    let l = getLocalLikes();
-    l = l.includes(id) ? l.filter(x => x !== id) : [...l, id];
-    localStorage.setItem('bc_likes', JSON.stringify(l));
-}
-function updateLikeButtonStyle(id) {
-    const btn = document.getElementById(`lbtn-${id}`);
-    if(btn) getLocalLikes().includes(id) ? btn.classList.add('liked') : btn.classList.remove('liked');
-}
-
-async function initFeed(groups) {
-    for (let gIdx = 0; gIdx < groups.length; gIdx++) {
-        const groupId = `group_${gIdx}`;
-        const postRef = await ensurePostDoc(groupId);
-
-        onSnapshot(postRef, snap => {
-            const data = snap.data();
-            document.getElementById(`lcnt-${groupId}`).textContent = data.likes || 0;
-            document.getElementById(`ccnt-${groupId}`).textContent = data.comments?.length || 0;
-
-            const list = document.getElementById(`clist-${groupId}`);
-            list.innerHTML = '';
-            if(data.comments) {
-                data.comments.forEach(c => {
-                    list.innerHTML += `<div class="comment-item"><span class="comment-user">anonymous</span>${c.text}</div>`;
+            `;
+            feed.appendChild(card);
+    
+            const scrollBox = document.getElementById(`scroll-${groupId}`);
+            scrollBox.addEventListener('scroll', () => {
+                const index = Math.round(scrollBox.scrollLeft / scrollBox.offsetWidth);
+                group.forEach((_, pIdx) => {
+                    const d = document.getElementById(`dot-${groupId}-${pIdx}`);
+                    if(d) d.classList.toggle('active', pIdx === index);
                 });
-                list.scrollTop = list.scrollHeight;
-            }
-
-            updateLikeButtonStyle(groupId);
+            });
+    
+            document.getElementById(`lbtn-${groupId}`).onclick = () => handleLike(groupId);
+            document.getElementById(`cbtn-${groupId}`).onclick = () => {
+                document.getElementById(`csec-${groupId}`).classList.toggle('open');
+            };
+            document.getElementById(`btog-${groupId}`).onclick = () => {
+                const bio = document.getElementById(`bio-${groupId}`);
+                bio.style.maxHeight = (bio.style.maxHeight === '0px' || !bio.style.maxHeight) ? bio.scrollHeight + 'px' : '0px';
+            };
+            document.getElementById(`cpost-${groupId}`).onclick = () => postComment(groupId);
         });
     }
-}
-
-// Initialize
-(async () => {
-    await initUser();
-    renderFeed();
-    const groups = chunkArray(photos, 4);
-    initFeed(groups);
-})();
+    
+    // Firebase helpers
+    async function initUser() {
+        const userCred = await signInAnonymously(auth);
+        currentUser = userCred.user;
+        console.log("User ID:", currentUser.uid);
+    }
+    
+    async function ensurePostDoc(groupId) {
+        const postRef = doc(db, "posts", groupId);
+        const snap = await getDoc(postRef);
+        if (!snap.exists()) {
+            await setDoc(postRef, { likes: 0, likedBy: [], comments: [] });
+        }
+        return postRef;
+    }
+    
+    async function handleLike(groupId) {
+        if (!currentUser) return alert("Signing in...");
+        const postRef = await ensurePostDoc(groupId);
+        const liked = getLocalLikes().includes(groupId);
+        toggleLocalLike(groupId);
+        updateLikeButtonStyle(groupId);
+    
+        try {
+            await updateDoc(postRef, {
+                likedBy: liked ? arrayRemove(currentUser.uid) : arrayUnion(currentUser.uid),
+                likes: liked ? increment(-1) : increment(1)
+            });
+        } catch(e){ console.error(e); }
+    }
+    
+    async function postComment(groupId) {
+        if (!currentUser) return alert("Signing in...");
+        const input = document.getElementById(`cinp-${groupId}`);
+        if (!input.value.trim()) return;
+    
+        const postRef = await ensurePostDoc(groupId);
+        try {
+            await updateDoc(postRef, {
+                comments: arrayUnion({ text: input.value, uid: currentUser.uid, time: Date.now() })
+            });
+            input.value = '';
+        } catch(e){ console.error(e); }
+    }
+    
+    function getLocalLikes() { return JSON.parse(localStorage.getItem('bc_likes') || '[]'); }
+    function toggleLocalLike(id) {
+        let l = getLocalLikes();
+        l = l.includes(id) ? l.filter(x => x !== id) : [...l, id];
+        localStorage.setItem('bc_likes', JSON.stringify(l));
+    }
+    function updateLikeButtonStyle(id) {
+        const btn = document.getElementById(`lbtn-${id}`);
+        if(btn) getLocalLikes().includes(id) ? btn.classList.add('liked') : btn.classList.remove('liked');
+    }
+    
+    async function initFeed(groups) {
+        // Init SOLO post listener (if solo exists)
+        const solo = photos.find(p => p.solo);
+        if (solo) {
+            const soloId = `solo_${solo.id}`;
+            const postRef = await ensurePostDoc(soloId);
+    
+            onSnapshot(postRef, snap => {
+                const data = snap.data();
+                // update counters (solo)
+                const lcntElm = document.getElementById(`lcnt-${soloId}`);
+                const ccntElm = document.getElementById(`ccnt-${soloId}`);
+                if (lcntElm) lcntElm.textContent = data.likes || 0;
+                if (ccntElm) ccntElm.textContent = data.comments?.length || 0;
+    
+                const list = document.getElementById(`clist-${soloId}`);
+                if (list) {
+                    list.innerHTML = '';
+                    if (data.comments) {
+                        data.comments.forEach(c => {
+                            list.innerHTML += `<div class="comment-item"><span class="comment-user">anonymous</span>${c.text}</div>`;
+                        });
+                        list.scrollTop = list.scrollHeight;
+                    }
+                }
+    
+                updateLikeButtonStyle(soloId);
+            });
+        }
+    
+        for (let gIdx = 0; gIdx < groups.length; gIdx++) {
+            const groupId = `group_${gIdx}`;
+            const postRef = await ensurePostDoc(groupId);
+    
+            onSnapshot(postRef, snap => {
+                const data = snap.data();
+                const lcnt = document.getElementById(`lcnt-${groupId}`);
+                const ccnt = document.getElementById(`ccnt-${groupId}`);
+                if (lcnt) lcnt.textContent = data.likes || 0;
+                if (ccnt) ccnt.textContent = data.comments?.length || 0;
+    
+                const list = document.getElementById(`clist-${groupId}`);
+                if (list) {
+                    list.innerHTML = '';
+                    if(data.comments) {
+                        data.comments.forEach(c => {
+                            list.innerHTML += `<div class="comment-item"><span class="comment-user">anonymous</span>${c.text}</div>`;
+                        });
+                        list.scrollTop = list.scrollHeight;
+                    }
+                }
+    
+                updateLikeButtonStyle(groupId);
+            });
+        }
+    }
+    
+    // Initialize
+    (async () => {
+        await initUser();
+        renderFeed();
+        const groups = chunkArray(photos, 4);
+        initFeed(groups);
+    })();
 </script>
 </body>
 </html>
