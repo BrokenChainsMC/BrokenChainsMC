@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Members | Broken Chains MC</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Metal+Mania&display=swap" rel="stylesheet">
+
+<style>
+/* base */
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: #0b0b0b;
+  color: #e6e6e6;
+  font-family: Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+}
+
+/* members header (kept hidden until login) */
+header#header {
+  display: none;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 20px;
+  border-bottom: 1px solid #222;
+  background: #080808;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+header#header h1 {
+  font-family: 'Metal Mania';
+  margin: 0;
+  font-size: 20px;
+}
+header#header nav {
+  margin-left: auto;
+  display: flex;
+  gap: 10px;
+}
+header#header nav a {
+  color: #ddd;
+  text-decoration: none;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+header#header nav a:hover {
+  background: #111;
+}
+
+/* main panel area */
+main {
+  max-width: 900px;
+  margin: 20px auto;
+  padding: 0 14px;
+}
+.panel {
+  background: #111;
+  border: 1px solid #222;
+  padding: 16px;
+  border-radius: 8px;
+}
+.item {
+  padding: 12px 10px;
+  border-bottom: 1px dashed #222;
+  cursor: pointer;
+}
+.item:hover { background:#0e0e0e }
+.meta {
+  font-size: 12px;
+  color: #aaa;
+  margin-bottom: 6px;
+}
+textarea {
+  width: 100%;
+  background: #000;
+  color: #fff;
+  border: 1px solid #333;
+  padding: 10px;
+  border-radius: 6px;
+}
+button {
+  background: #7a0000;
+  color: #fff;
+  border: none;
+  padding: 10px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* overlay / login gate */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  display: flex;
+  align-items: flex-start;   /* keep header at top */
+  justify-content: center;
+  z-index: 200;
+  padding-top: 110px;        /* reduced space so header won't cover logo */
+  overflow-y: auto;
+}
+
+/* inner container that centers logo + box */
+.gate-inner {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 0 18px;
+  margin-bottom: 40px; /* breathing room on mobile */
+}
+
+/* login-only header (only inside the gate) - MADE SMALLER */
+.login-header {
+  background: #000;
+  padding: 10px 12px;            /* smaller padding */
+  text-align: center;
+  border-bottom: 2px solid #b30000;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 1001;
+
+  /* center children */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.login-header h1 {
+  font-family: 'Metal Mania', cursive;
+  font-size: clamp(18px, 5vw, 28px); /* reduced sizes */
+  letter-spacing: 1px;
+  color: #ffffff;
+  text-transform: uppercase;
+  line-height: 1;
+  margin: 0;
+}
+.login-header nav {
+  margin-top: 6px;
+}
+.login-header nav a {
+  color: #b30000;
+  text-decoration: none;
+  font-weight: bold;
+  display: inline-block;
+  text-transform: uppercase;
+  font-size: 13px;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+/* club logo container + responsive image */
+.club-logo {
+  width: 100%;
+  max-width: 160px; /* max visual size on large screens */
+  margin: 4px auto 0 auto;
+  display: block;
+  filter: drop-shadow(0 6px 18px rgba(179,0,0,0.45));
+}
+.club-logo img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  border-radius: 10px; /* optional; remove if plain corners desired */
+  border: 2px solid rgba(122,0,0,0.08);
+}
+
+/* login box */
+.box {
+  background: #080808;
+  border: 1px solid #222;
+  padding: 22px;
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+
+  /* red glow */
+  box-shadow: 0 0 24px 6px rgba(122,0,0,0.30), 0 0 10px rgba(122,0,0,0.45) inset;
+  border-color: #7a0000;
+  border-radius: 8px;
+  z-index: 1000;
+}
+.box h1 {
+  font-family: 'Metal Mania';
+  margin-bottom: 10px;
+  font-size: 18px;
+}
+
+/* password wrapper to allow toggle button inside */
+.pw-wrap {
+  position: relative;
+  width: 100%;
+}
+.pw-wrap input[type="password"],
+.pw-wrap input[type="text"] {
+  width: 100%;
+  padding: 12px 44px 12px 12px; /* right padding to make room for toggle */
+  background: #000;
+  border: 1px solid #333;
+  color: #fff;
+  border-radius: 6px;
+  box-sizing: border-box;
+}
+
+/* toggle button (eye) */
+.pw-toggle-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: #ddd;
+  padding: 6px;
+  cursor: pointer;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.pw-toggle-btn:hover {
+  background: rgba(255,255,255,0.03);
+}
+.pw-toggle-btn:focus {
+  outline: 3px solid rgba(179,0,0,0.25);
+  outline-offset: 2px;
+}
+
+/* accessibility focus styles for other controls */
+button:focus, .login-header nav a:focus {
+  outline: 3px solid rgba(179,0,0,0.25);
+  outline-offset: 2px;
+}
+
+/* small responsiveness */
+@media (max-width: 480px){
+  .overlay { padding-top: 90px; } /* slightly smaller on phones */
+  .club-logo { max-width: 120px; }
+  .box { padding: 16px; max-width: 340px; }
+  .login-header h1 { font-size: clamp(16px, 6vw, 22px); }
+}
+</style>
+</head>
+<body>
+
+<!-- PASSWORD GATE -->
+<div id="gate" class="overlay" role="dialog" aria-modal="true" aria-labelledby="login-title">
+
+  <!-- LOGIN PAGE HEADER (only present on login) -->
+  <header class="login-header" aria-hidden="false">
+    <h1>Broken Chains MC</h1>
+    <nav><a href="index.html">Home</a></nav>
+  </header>
+
+  <!-- center container for logo + box -->
+  <div class="gate-inner">
+
+    <!-- CLUB LOGO (responsive IMG) -->
+    <div class="club-logo" aria-hidden="false">
+      <!-- Replace 'images/logo.webp' with your actual image path/filename -->
+      <img src="images/logo.png" alt="Broken Chains MC logo" width="160" height="160" loading="lazy">
+    </div>
+
+    <div class="box" role="document" aria-labelledby="login-title">
+      <h1 id="login-title">Members Only</h1>
+
+      <!-- password input + toggle -->
+      <div class="pw-wrap" style="margin-top:8px;">
+        <input id="pw" type="password" placeholder="Enter password" aria-label="password">
+        <button id="pw-toggle" class="pw-toggle-btn" aria-pressed="false" aria-label="Show password">
+          <!-- simple eye icon (SVG) -->
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+        </button>
+      </div>
+
+      <div style="height:12px"></div>
+      <button onclick="enter()">Enter</button>
+    </div>
+
+  </div><!-- /.gate-inner -->
+</div><!-- /.overlay -->
+
+<header id="header">
+  <h1>Broken Chains MC</h1>
+  <nav>
+    <a onclick="loadChurch()">Church Notes</a>
+    <a onclick="loadAnnouncements()">Announcements</a>
+    <a onclick="loadSuggestions()">Suggestions</a>
+    <a onclick="logout()">Log out</a>
+  </nav>
+</header>
+
+<main>
+  <div id="content" class="panel"></div>
+</main>
+
+<script>
+const FULL = "tablebrokenchains";
+const UNDER = "46brokenchains";
+
+function enter(){
+  const pw = document.getElementById("pw").value.trim();
+  if(pw === FULL) sessionStorage.role = "full";
+  else if(pw === UNDER) sessionStorage.role = "under";
+  else return alert("Incorrect password");
+
+  // hide gate and reveal members header
+  document.getElementById("gate").style.display = "none";
+  document.getElementById("header").style.display = "flex";
+  loadChurch();
+}
+
+function logout(){
+  sessionStorage.clear();
+  location.reload();
+}
+
+/* --- NEW: password visibility toggle & Enter-key handling --- */
+(function setupPwControls(){
+  const pwInput = document.getElementById('pw');
+  const toggle = document.getElementById('pw-toggle');
+
+  // Toggle password visibility
+  toggle.addEventListener('click', (e) => {
+    e.preventDefault();
+    const isText = pwInput.type === 'text';
+    pwInput.type = isText ? 'password' : 'text';
+    toggle.setAttribute('aria-pressed', String(!isText));
+    // update aria-label for clarity
+    toggle.setAttribute('aria-label', isText ? 'Show password' : 'Hide password');
+    // update icon: simple approach — flip opacity for "closed" look
+    // (for now we keep the same SVG; aria label indicates state)
+  });
+
+  // Enter key triggers login when typing in password
+  pwInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      enter();
+    }
+  });
+
+  // also allow Enter on the toggle button to toggle (keyboard-friendly)
+  toggle.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      toggle.click();
+    }
+  });
+})();
+</script>
+
+<!-- FIREBASE -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCf4fosWsy2kX8mQSmm28PS5AoA8Ft3eCE",
+  authDomain: "brokenchainsmembers.firebaseapp.com",
+  projectId: "brokenchainsmembers",
+  storageBucket: "brokenchainsmembers.firebasestorage.app",
+  messagingSenderId: "674604096674",
+  appId: "1:674604096674:web:145adc4fc387a2540c8bfb",
+  databaseURL: "https://brokenchainsmembers-default-rtdb.firebaseio.com"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const content = document.getElementById("content");
+
+function esc(t){ return t.replace(/[<>&]/g,m=>({ "<":"&lt;",">":"&gt;","&":"&amp;" }[m])) }
+function role(){ return sessionStorage.role }
+
+function render(title, path, canPost){
+  content.innerHTML = `<h2>${title}</h2><div id="list"></div>`;
+  if(canPost){
+    content.innerHTML += `
+      <h3>Create ${title.slice(0,-1)}</h3>
+      <textarea id="text"></textarea><br><br>
+      <button onclick="post('${path}')">Post</button><hr>
+    `;
+  }
+
+  const list = document.getElementById("list");
+  onValue(ref(db, path), snap => {
+    list.innerHTML = "";
+    const data = snap.val() || {};
+    Object.entries(data).reverse().forEach(([id,p])=>{
+      const d = document.createElement("div");
+      d.className="item";
+      /* explicit 'Posted:' label so timestamps are clear for Church Notes & Announcements */
+      d.innerHTML = `<div class="meta">Posted: ${new Date(p.timestamp).toLocaleString()}</div>${esc(p.text)}`;
+      if(role()==="full"){
+        d.onclick = ()=>{ if(confirm("Delete?")) remove(ref(db,`${path}/${id}`)); };
+      }
+      list.appendChild(d);
+    });
+  });
+}
+
+window.loadChurch = ()=> render("Church Notes","churchNotes",role()==="full");
+window.loadAnnouncements = ()=> render("Announcements","announcements",role()==="full");
+
+window.loadSuggestions = ()=>{
+  content.innerHTML = `<h2>Suggestions</h2><div id="list"></div>`;
+  if(role()==="under"){
+    content.innerHTML += `
+      <h3>Leave a suggestion</h3>
+      <textarea id="sug"></textarea><br><br>
+      <button onclick="send()">Submit</button><hr>
+    `;
+  }
+
+  const list = document.getElementById("list");
+  onValue(ref(db,"suggestions"), snap=>{
+    list.innerHTML="";
+    const data = snap.val()||{};
+    Object.entries(data).reverse().forEach(([id,s])=>{
+      const d=document.createElement("div");
+      d.className="item";
+      d.innerHTML=`<div class="meta">${new Date(s.timestamp).toLocaleString()}</div>${esc(s.text)}`;
+      if(role()==="full"){
+        d.onclick=()=>{ if(confirm("Delete?")) remove(ref(db,`suggestions/${id}`)); };
+      }
+      list.appendChild(d);
+    });
+  });
+};
+
+window.post = path =>{
+  const t=document.getElementById("text").value.trim();
+  if(!t)return;
+  push(ref(db,path),{text:t,timestamp:Date.now()});
+  document.getElementById("text").value="";
+};
+
+window.send = ()=>{
+  const t=document.getElementById("sug").value.trim();
+  if(!t)return;
+  push(ref(db,"suggestions"),{text:t,timestamp:Date.now()});
+  document.getElementById("sug").value="";
+};
+</script>
+</body>
+</html>
